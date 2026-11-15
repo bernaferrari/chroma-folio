@@ -6,6 +6,8 @@ import 'package:hsluv/contrast.dart';
 import 'package:hsluv/hsluvcolor.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'color_spaces.dart' show hsluvFromColor;
+
 /// Standard WCAG 2.1 contrast ratio between [a] and [b] in [1.0 .. 21.0].
 double wcagContrastRatio(Color a, Color b) {
   final lumA = a.computeLuminance();
@@ -81,7 +83,7 @@ HSLuvColor? solveHsluvForContrast(
   Color background,
   double targetRatio,
 ) {
-  final bgLuv = HSLuvColor.fromRawColor(background);
+  final bgLuv = hsluvFromColor(background);
 
   // Use Contrast helper bounds as starting hints, then refine against true sRGB color.
   HSLuvColor? searchDarker() {

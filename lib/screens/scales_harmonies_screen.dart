@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+import 'dart:ui' show ColorSpace;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -107,64 +107,37 @@ class ScalesHarmoniesScreen extends StatelessWidget {
   ) {
     final channels = active.channelsFor(space);
     final baseHue = channels[0].value;
-    final baseSat = math.max(active.hsluv.saturation, 58.0).clamp(0.0, 96.0);
-    final baseLight = channels[2].value.clamp(28.0, 74.0);
+    final saturation = channels[1].value;
+    final lightness = channels[2].value.clamp(28.0, 74.0);
 
-    List<StudioColor> sampleChord(
-      List<double> hueOffsets,
-      List<double> lightOffsets,
-      List<double> satScales,
-    ) {
-      return [
-        for (int i = 0; i < 8; i++)
-          StudioColor.fromColor(
-            sampleAcrossSpace(
-              space,
-              hue: baseHue + hueOffsets[i],
-              saturationPct: (baseSat * satScales[i]).clamp(14.0, 98.0),
-              lightnessPct: (baseLight + lightOffsets[i]).clamp(12.0, 92.0),
-            ),
-          ),
-      ];
-    }
+    StudioColor mix(double hueOffset, double tone, double intensity) =>
+        StudioColor.fromSpace(
+          space,
+          hue: baseHue + hueOffset,
+          saturationPct: saturation * intensity,
+          lightnessPct: tone,
+        );
+
+    _HarmonyChord harmony(String title, double first, double second) =>
+        _HarmonyChord(
+          title: title,
+          colors: [
+            active,
+            mix(first, lightness + 10, 0.72),
+            mix(second, lightness - 4, 0.60),
+            mix(second, 27, 0.35),
+            mix(0, 42, 0.48),
+            mix(0, 68, 0.40),
+            mix(first, 83, 0.28),
+            mix(0, 94, 0.16),
+          ],
+        );
 
     return [
-      _HarmonyChord(
-        title: 'Analogous',
-        angleLabel: '±22°',
-        colors: sampleChord(
-          const [0, 22, 44, -22, -44, 14, -14, 30],
-          const [0, 8, -10, 10, -8, 20, -18, 26],
-          const [1.0, 0.95, 0.92, 0.96, 0.88, 0.65, 0.78, 0.42],
-        ),
-      ),
-      _HarmonyChord(
-        title: 'Complementary',
-        angleLabel: '180°',
-        colors: sampleChord(
-          const [0, 180, 14, 194, -14, 166, 0, 180],
-          const [0, 0, 14, -12, -14, 16, 28, -22],
-          const [1.0, 0.96, 0.85, 0.92, 0.88, 0.82, 0.42, 0.76],
-        ),
-      ),
-      _HarmonyChord(
-        title: 'Triadic',
-        angleLabel: '120°',
-        colors: sampleChord(
-          const [0, 120, 240, 18, 138, 258, 0, 240],
-          const [0, 4, -4, 16, -14, 14, 28, -24],
-          const [1.0, 0.94, 0.94, 0.82, 0.85, 0.8, 0.4, 0.75],
-        ),
-      ),
-      _HarmonyChord(
-        title: 'Split',
-        angleLabel: '150° · 210°',
-        colors: sampleChord(
-          const [0, 150, 210, 12, 162, 198, 0, 180],
-          const [0, 6, -6, 16, -14, 14, 26, -24],
-          const [1.0, 0.94, 0.94, 0.84, 0.86, 0.84, 0.42, 0.72],
-        ),
-      ),
+      harmony('Analogous', 28, -28),
+      harmony('Complementary', 180, 180),
+      harmony('Triadic', 120, 240),
+      harmony('Split complementary', 150, 210),
     ];
   }
 }
@@ -278,14 +251,9 @@ class _TonalBand extends StatelessWidget {
 }
 
 class _HarmonyChord {
-  const _HarmonyChord({
-    required this.title,
-    required this.angleLabel,
-    required this.colors,
-  });
+  const _HarmonyChord({required this.title, required this.colors});
 
   final String title;
-  final String angleLabel;
   final List<StudioColor> colors;
 }
 
@@ -394,43 +362,49 @@ class _HarmonyChordCardState extends State<_HarmonyChordCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          chord.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: studioDisplayStyle(
-                            context,
-                            fontSize: 22,
-                            height: 1.0,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        chord.angleLabel,
-                        maxLines: 1,
-                        style: studioMonoStyle(
-                          context,
-                          fontSize: 11,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    chord.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: studioDisplayStyle(context, fontSize: 21, height: 1),
                   ),
                   const SizedBox(height: 12),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(14),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          for (final swatch in chord.colors)
-                            Expanded(child: ColoredBox(color: swatch.color)),
+                          Expanded(
+                            flex: 3,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: ColoredBox(
+                                    color: chord.colors[0].color,
+                                  ),
+                                ),
+                                for (final swatch
+                                    in chord.colors.skip(1).take(2))
+                                  Expanded(
+                                    child: ColoredBox(color: swatch.color),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (final swatch in chord.colors.skip(3))
+                                  Expanded(
+                                    child: ColoredBox(color: swatch.color),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -483,10 +457,21 @@ class _CopyPaletteBar extends StatelessWidget {
 
   String get _hexList => palette.map((c) => c.hex).join(', ');
 
-  String get _cssVariables {
+  String _cssVariables({required bool displayP3}) {
+    String format(StudioColor swatch) {
+      if (!displayP3) return swatch.oklchDisplay;
+      final p3 = swatch.color.withValues(colorSpace: ColorSpace.displayP3);
+      final components = [
+        p3.r,
+        p3.g,
+        p3.b,
+      ].map((component) => component.clamp(0, 1).toStringAsFixed(6)).join(' ');
+      return 'color(display-p3 $components)';
+    }
+
     final lines = [
       for (int i = 0; i < palette.length; i++)
-        '  --color-${i + 1}: ${palette[i].oklchDisplay};',
+        '  --color-${i + 1}: ${format(palette[i])};',
     ].join('\n');
     return ':root {\n$lines\n}';
   }
@@ -527,12 +512,20 @@ class _CopyPaletteBar extends StatelessWidget {
             onTap: () => copyWithFeedback(context, _hexList, label: 'hex'),
           ),
           const SizedBox(width: 6),
-          _CopyChip(
-            label: 'CSS',
-            onTap: () => copyWithFeedback(
+          PopupMenuButton<bool>(
+            tooltip: 'Copy CSS palette',
+            onSelected: (displayP3) => copyWithFeedback(
               context,
-              _cssVariables,
-              label: 'CSS variables',
+              _cssVariables(displayP3: displayP3),
+              label: displayP3 ? 'Display P3 CSS' : 'OKLCH CSS',
+            ),
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: false, child: Text('OKLCH')),
+              PopupMenuItem(value: true, child: Text('Display P3')),
+            ],
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Text('CSS'),
             ),
           ),
           const SizedBox(width: 6),

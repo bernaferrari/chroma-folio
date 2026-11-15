@@ -345,6 +345,35 @@ void main() {
       expect(cubit.state.palette.map((c) => c.hex).toList(), isNot(before));
     });
 
+    testWidgets('CSS copy emits Display P3 values for the palette', (
+      tester,
+    ) async {
+      String? copied;
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+
+      final cubit = await pumpStudio(tester);
+      await tester.tap(find.byTooltip('Palette'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CSS'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Display P3'));
+      await tester.pumpAndSettle();
+
+      expect(
+        RegExp(r'color\(display-p3 [\d.]+ [\d.]+ [\d.]+\)').allMatches(copied!),
+        hasLength(cubit.state.palette.length),
+      );
+    });
+
     testWidgets('shuffle changes the palette and can be undone', (
       tester,
     ) async {

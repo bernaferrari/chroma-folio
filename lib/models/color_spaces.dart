@@ -1,9 +1,24 @@
 import 'dart:math' as math;
 
 import 'package:equatable/equatable.dart';
+import 'package:hsluv/hsluv.dart';
 import 'package:hsluv/hsluvcolor.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:material_ui/material_ui.dart';
+
+/// Converts sRGB to HSLuv without rounding the editable channels.
+HSLuvColor hsluvFromColor(Color color) {
+  final channels = Hsluv.rgbToHsluv([
+    color.r.clamp(0.0, 1.0),
+    color.g.clamp(0.0, 1.0),
+    color.b.clamp(0.0, 1.0),
+  ]);
+  return HSLuvColor.fromHSL(
+    channels[0].clamp(0.0, 360.0),
+    channels[1].clamp(0.0, 100.0),
+    channels[2].clamp(0.0, 100.0),
+  );
+}
 
 /// Supported color spaces in the Perceptual Color Studio.
 enum ColorSpaceMode {
@@ -301,7 +316,7 @@ class StudioColor extends Equatable {
     final hct = Hct.fromInt(opaque.toARGB32());
     return StudioColor(
       color: opaque,
-      hsluv: HSLuvColor.fromRawColor(opaque),
+      hsluv: hsluvFromColor(opaque),
       oklch: OklchColor.fromColor(opaque),
       hctHue: hct.hue,
       hctChroma: hct.chroma,

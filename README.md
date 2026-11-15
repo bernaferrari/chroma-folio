@@ -13,7 +13,7 @@ A colour studio you can fling. Spin three colour reels, compare the same hue acr
 
 ![Palette view with a tonal scale and four harmony previews](docs/screenshots/palette.png)
 
-In **Reels**, drag slowly for control or fling to see where the colour lands. Tap a channel value to enter it exactly. In **Palette**, try a harmony on your eight swatches, copy the tonal scale for Tailwind, or export the palette as hex, CSS variables, or Flutter code.
+In **Reels**, drag slowly for control or fling to see where the colour lands. Tap a channel value to enter it exactly. In **Palette**, try a harmony on your eight swatches, copy the tonal scale for Tailwind, or export the palette as hex, CSS variables in OKLCH or Display P3, or Flutter code. Display P3 export converts the current sRGB colours to P3 coordinates.
 
 ## Run locally
 
@@ -32,6 +32,6 @@ Run `flutter analyze` and `flutter test` to check the project. Run `flutter buil
 
 ## Credits
 
-Chroma Folio started as the example app in [hsluv-dart](https://github.com/bernaferrari/hsluv-dart). The matching HSLuv package is included under [packages/hsluv](packages/hsluv) so you can build from this checkout.
+Chroma Folio started as the example app in [hsluv-dart](https://github.com/bernaferrari/hsluv-dart). It uses the [HSLuv package on pub.dev](https://pub.dev/packages/hsluv).
 
 [MIT license](LICENSE)

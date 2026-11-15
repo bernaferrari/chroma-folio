@@ -125,7 +125,7 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
     if (widget.space == ColorSpaceMode.hsluv) {
       final effectiveL = lightness.clamp(1.0, 99.0);
       final geometry = ColorPicker.getPickerGeometry(effectiveL);
-      final maxR = math.max(geometry.outerCircleRadius, 1.0);
+      final maxR = math.max(geometry.outerCircleRadius ?? 0, 1.0);
       final scale = radius / maxR;
       final rawPt = Point(dx / scale, dy / scale);
       final clampedPt = ColorPicker.closestPoint(geometry, rawPt);
@@ -519,7 +519,7 @@ class _PolarGamutPainter extends CustomPainter {
       switch (space) {
         case ColorSpaceMode.hsluv:
           final maxC = Hsluv.maxChromaForLH(effectiveL, hue);
-          final maxOuter = math.max(geometry!.outerCircleRadius, 1.0);
+          final maxOuter = math.max(geometry!.outerCircleRadius ?? 0, 1.0);
           rNorm = (maxC / maxOuter).clamp(0.0, 1.05);
           edgeColor = HSLuvColor.fromHSL(
             hue.clamp(0.0, 360.0),
@@ -685,7 +685,7 @@ class _PolarGamutPainter extends CustomPainter {
     // Inner HPLuv pastel circle in HSLuv mode
     if (space == ColorSpaceMode.hsluv && geometry != null) {
       final innerRatio =
-          geometry.innerCircleRadius / math.max(geometry.outerCircleRadius, 1.0);
+          (geometry.innerCircleRadius ?? 0) / math.max(geometry.outerCircleRadius ?? 0, 1.0);
       canvas.drawCircle(
         center,
         radius * innerRatio,

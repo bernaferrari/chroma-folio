@@ -110,7 +110,9 @@ class StudioCubit extends Cubit<StudioState> {
 
   void scrubHsluvHueSat(double hue, double saturation) {
     final updatedColor = StudioColor.fromHsluv(
-      state.activeColor.hsluv.copyWith(hue: hue, saturation: saturation),
+      state.activeColor.hsluv
+          .withHue(hue)
+          .withSaturation(saturation.clamp(0.0, 100.0)),
     );
     setActiveColor(updatedColor, recordHistory: false);
   }
