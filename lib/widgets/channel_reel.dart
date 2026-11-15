@@ -17,6 +17,7 @@ class ChannelReel extends StatefulWidget {
     required this.onScrubUpdate,
     required this.onScrubEnd,
     this.showReadout = true,
+    this.axis = Axis.vertical,
   });
 
   final ChannelDescriptor descriptor;
@@ -28,6 +29,7 @@ class ChannelReel extends StatefulWidget {
 
   /// Whether the channel name and value are shown above the reel.
   final bool showReadout;
+  final Axis axis;
 
   @override
   State<ChannelReel> createState() => _ChannelReelState();
@@ -45,6 +47,7 @@ class _ChannelReelState extends State<ChannelReel>
   final FocusNode _focusNode = FocusNode(debugLabel: 'ChannelReel');
   bool _pressed = false;
 
+  bool get _isVertical => widget.axis == Axis.vertical;
   bool get _isHue => widget.descriptor.index == 0;
 
   @override
@@ -72,13 +75,19 @@ class _ChannelReelState extends State<ChannelReel>
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
-    final towardsTop = event.logicalKey == LogicalKeyboardKey.arrowUp;
-    final towardsBottom = event.logicalKey == LogicalKeyboardKey.arrowDown;
-    if (!towardsTop && !towardsBottom) return KeyEventResult.ignored;
+    final previous = _isVertical
+        ? LogicalKeyboardKey.arrowUp
+        : LogicalKeyboardKey.arrowLeft;
+    final next = _isVertical
+        ? LogicalKeyboardKey.arrowDown
+        : LogicalKeyboardKey.arrowRight;
+    if (event.logicalKey != previous && event.logicalKey != next) {
+      return KeyEventResult.ignored;
+    }
     final amount = HardwareKeyboard.instance.isShiftPressed
         ? _motion.step
         : 1.0;
-    final increases = towardsTop == _motion.reversed;
+    final increases = (event.logicalKey == previous) == _motion.reversed;
     _motion.nudge(increases ? amount : -amount);
     return KeyEventResult.handled;
   }
@@ -112,7 +121,7 @@ class _ChannelReelState extends State<ChannelReel>
       ..min = descriptor.min
       ..max = descriptor.max
       ..wraps = _isHue
-      ..reversed = !_isHue
+      ..reversed = _isVertical && !_isHue
       ..step = _isHue ? _hueStep : _levelStep
       ..sync(descriptor.value);
 
@@ -148,8 +157,13 @@ class _ChannelReelState extends State<ChannelReel>
                 clipBehavior: Clip.antiAlias,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final bandLength = (constraints.maxHeight / _bandsInView)
-                        .clamp(32.0, 56.0);
+                    final extent = _isVertical
+                        ? constraints.maxHeight
+                        : constraints.maxWidth;
+                    final bandLength = (extent / _bandsInView).clamp(
+                      _isVertical ? 32.0 : 24.0,
+                      56.0,
+                    );
                     _motion.pixelsPerUnit = bandLength / _motion.step;
 
                     return Stack(
@@ -158,7 +172,7 @@ class _ChannelReelState extends State<ChannelReel>
                         Positioned.fill(
                           child: ReelSurface(
                             motion: _motion,
-                            axis: Axis.vertical,
+                            axis: widget.axis,
                             onPressedChanged: (pressed) {
                               if (pressed) _focusNode.requestFocus();
                               setState(() => _pressed = pressed);
@@ -166,7 +180,7 @@ class _ChannelReelState extends State<ChannelReel>
                             child: CustomPaint(
                               painter: ReelStripPainter(
                                 motion: _motion,
-                                axis: Axis.vertical,
+                                axis: widget.axis,
                                 paletteKey: (
                                   widget.activeColor,
                                   widget.space,
@@ -183,9 +197,16 @@ class _ChannelReelState extends State<ChannelReel>
                           ),
                         ),
                         Positioned(
-                          left: _lensInset,
-                          right: _lensInset,
-                          height: bandLength + _lensOverhang * 2,
+                          left: _isVertical ? _lensInset : null,
+                          right: _isVertical ? _lensInset : null,
+                          top: _isVertical ? null : _lensInset,
+                          bottom: _isVertical ? null : _lensInset,
+                          height: _isVertical
+                              ? bandLength + _lensOverhang * 2
+                              : null,
+                          width: _isVertical
+                              ? null
+                              : bandLength + _lensOverhang * 2,
                           child: ReelLens(
                             color: widget.activeColor.color,
                             pressed: _pressed,

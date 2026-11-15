@@ -252,27 +252,32 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 8, _levelReelWidth + 12, 0),
-              child: Row(
+              child: Column(
                 children: [
-                  Text(saturation.name),
-                  Expanded(
-                    child: Slider(
-                      value: saturation.value.clamp(
-                        saturation.min,
-                        saturation.max,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(saturation.name),
+                      Text(
+                        saturation.formattedValue,
+                        style: studioMonoStyle(context, fontSize: 11),
                       ),
-                      min: saturation.min,
-                      max: saturation.max,
-                      semanticFormatterCallback: (value) =>
-                          '${saturation.name} ${value.round()}${saturation.unit}',
-                      onChangeStart: (_) => _cubit.beginScrub(),
-                      onChanged: (value) => _cubit.scrubChannel(1, value),
-                      onChangeEnd: (_) => _cubit.endScrub(),
-                    ),
+                    ],
                   ),
-                  Text(
-                    saturation.formattedValue,
-                    style: studioMonoStyle(context, fontSize: 11),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: _levelReelWidth,
+                    child: ChannelReel(
+                      key: const ValueKey('solid_saturation_reel'),
+                      axis: Axis.horizontal,
+                      descriptor: saturation,
+                      space: space,
+                      activeColor: state.activeColor,
+                      showReadout: false,
+                      onScrubStart: _cubit.beginScrub,
+                      onScrubUpdate: (value) => _cubit.scrubChannel(1, value),
+                      onScrubEnd: _cubit.endScrub,
+                    ),
                   ),
                 ],
               ),

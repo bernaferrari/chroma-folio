@@ -54,6 +54,7 @@ class StudioPillSelector<T> extends StatelessWidget {
       option: option,
       selected: option.value == value,
       compact: compact,
+      expand: expand,
       selectedBg: selectedBg,
       selectedBorder: selectedBorder,
       inkOverride: canvasInk,
@@ -111,6 +112,7 @@ class _PillItem<T> extends StatelessWidget {
     required this.option,
     required this.selected,
     required this.compact,
+    required this.expand,
     required this.selectedBg,
     required this.selectedBorder,
     required this.onTap,
@@ -120,6 +122,7 @@ class _PillItem<T> extends StatelessWidget {
   final StudioPillOption<T> option;
   final bool selected;
   final bool compact;
+  final bool expand;
   final Color selectedBg;
   final Color selectedBorder;
   final Color? inkOverride;
@@ -149,7 +152,9 @@ class _PillItem<T> extends StatelessWidget {
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
           height: tabHeight,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: expand ? 6 : (compact ? 10 : 12),
+          ),
           decoration: BoxDecoration(
             color: selected ? selectedBg : Colors.transparent,
             borderRadius: BorderRadius.circular(compact ? 8 : 10),

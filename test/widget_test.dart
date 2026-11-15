@@ -294,7 +294,7 @@ void main() {
       expect(cubit.state.activeColor.hsluv.lightness, lowered.lightness);
     });
 
-    testWidgets('the solid slider changes only saturation and can be undone', (
+    testWidgets('the solid reel changes only saturation and can be undone', (
       tester,
     ) async {
       final cubit = await pumpStudio(tester);
@@ -302,8 +302,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final before = cubit.state.activeColor;
-      final slider = tester.getRect(find.byType(Slider));
-      await tester.tapAt(slider.centerLeft + Offset(slider.width * 0.3, 0));
+      final reel = tester.getRect(
+        find.byKey(const ValueKey('solid_saturation_reel')),
+      );
+      await tester.tapAt(reel.centerLeft + Offset(reel.width * 0.3, 0));
       await tester.pumpAndSettle();
 
       final after = cubit.state.activeColor.hsluv;
