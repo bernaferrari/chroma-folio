@@ -17,7 +17,7 @@
 
 ## Turn colour around
 
-In **Solid**, hue goes around the shape, lightness goes up, and chroma extends outward. Turn the shape with a sideways drag. The reel on the right raises or lowers the cut, and the horizontal reel below adjusts saturation or chroma. You can also tap anywhere on the cut face to pick a colour.
+In **Solid**, hue goes around the shape, lightness goes up, and chroma extends outward. Turn the shape with a sideways drag. The reel on the right raises or lowers the cut, and the two reels below adjust hue and saturation or chroma. Tap a band or drag a reel to adjust its value. You can also tap anywhere on the cut face to pick a colour.
 
 | HSLuv | OKLCH |
 | :---: | :---: |

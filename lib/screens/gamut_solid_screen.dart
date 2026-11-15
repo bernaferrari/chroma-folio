@@ -158,7 +158,6 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
         final space = state.activeSpace;
         final channels = state.activeColor.channelsFor(space);
         final hue = channels[0].value;
-        final saturation = channels[1];
         final lightness = channels[2].value;
         final cached = _slice;
         final slice = cached != null && cached.matches(space, lightness)
@@ -252,25 +251,35 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 8, _levelReelWidth + 12, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Row(
                 children: [
-                  Text('${saturation.name} ${saturation.formattedValue}'),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: _levelReelWidth,
-                    child: ChannelReel(
-                      key: const ValueKey('solid_saturation_reel'),
-                      axis: Axis.horizontal,
-                      descriptor: saturation,
-                      space: space,
-                      activeColor: state.activeColor,
-                      showReadout: false,
-                      onScrubStart: _cubit.beginScrub,
-                      onScrubUpdate: (value) => _cubit.scrubChannel(1, value),
-                      onScrubEnd: _cubit.endScrub,
+                  for (final channel in channels.take(2)) ...[
+                    if (channel.index == 1) const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text('${channel.name} ${channel.formattedValue}'),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: _levelReelWidth,
+                            child: ChannelReel(
+                              key: ValueKey('solid_${channel.index}_reel'),
+                              axis: Axis.horizontal,
+                              descriptor: channel,
+                              space: space,
+                              activeColor: state.activeColor,
+                              showReadout: false,
+                              onScrubStart: _cubit.beginScrub,
+                              onScrubUpdate: (value) =>
+                                  _cubit.scrubChannel(channel.index, value),
+                              onScrubEnd: _cubit.endScrub,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
