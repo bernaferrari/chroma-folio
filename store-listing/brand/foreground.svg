@@ -7,7 +7,7 @@
     </clipPath>
   </defs>
   <g clip-path="url(#reels)">
-    <path fill="#598bff" d="M29 33h50v42H29z"/>
+    <path fill="#292e43" d="M29 33h50v42H29z"/>
     <path fill="#24b7a6" d="M29 33h14v14H29z"/>
     <path fill="#ab8bf2" d="M47 33h14v14H47z"/>
     <path fill="#ccdcff" d="M65 33h14v14H65z"/>
@@ -15,7 +15,7 @@
     <path fill="#555c86" d="M47 61h14v14H47z"/>
     <path fill="#264994" d="M65 61h14v14H65z"/>
   </g>
-  <g fill="none" stroke="#f2f5ff" stroke-width="1.4">
+  <g fill="#598bff" stroke="#f2f5ff" stroke-width="1.4">
     <rect x="31" y="49" width="10" height="10" rx="2.75"/>
     <rect x="49" y="49" width="10" height="10" rx="2.75"/>
     <rect x="67" y="49" width="10" height="10" rx="2.75"/>
