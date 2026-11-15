@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/app-icon.svg" width="80" height="80" alt="Chroma Folio app icon">
+  <img src="docs/brand/app-icon.svg" width="80" height="80" alt="Chroma Folio app icon">
 </p>
 
 <h1 align="center">Chroma Folio</h1>

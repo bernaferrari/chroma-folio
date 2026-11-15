@@ -1,7 +1,7 @@
 {
   "android": {"res": "android/app/src/main/res", "legacy": true},
   "files": [
-    {"path": "docs/app-icon.svg", "shape": "rounded"},
+    {"path": "docs/brand/app-icon.svg", "shape": "rounded"},
     {"path": "web/favicon.svg", "shape": "rounded"},
     {"path": "web/favicon.png", "size": 48, "shape": "rounded"},
     {"path": "web/icons/Icon-192.png", "size": 192, "shape": "rounded"},
