@@ -158,6 +158,7 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
         final space = state.activeSpace;
         final channels = state.activeColor.channelsFor(space);
         final hue = channels[0].value;
+        final saturation = channels[1];
         final lightness = channels[2].value;
         final cached = _slice;
         final slice = cached != null && cached.matches(space, lightness)
@@ -245,6 +246,33 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
                       onScrubUpdate: (value) => _cubit.scrubChannel(2, value),
                       onScrubEnd: _cubit.endScrub,
                     ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 8, _levelReelWidth + 12, 0),
+              child: Row(
+                children: [
+                  Text(saturation.name),
+                  Expanded(
+                    child: Slider(
+                      value: saturation.value.clamp(
+                        saturation.min,
+                        saturation.max,
+                      ),
+                      min: saturation.min,
+                      max: saturation.max,
+                      semanticFormatterCallback: (value) =>
+                          '${saturation.name} ${value.round()}${saturation.unit}',
+                      onChangeStart: (_) => _cubit.beginScrub(),
+                      onChanged: (value) => _cubit.scrubChannel(1, value),
+                      onChangeEnd: (_) => _cubit.endScrub(),
+                    ),
+                  ),
+                  Text(
+                    saturation.formattedValue,
+                    style: studioMonoStyle(context, fontSize: 11),
                   ),
                 ],
               ),

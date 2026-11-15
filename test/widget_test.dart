@@ -293,6 +293,26 @@ void main() {
       expect(cubit.state.activeColor.hsluv.lightness, lowered.lightness);
     });
 
+    testWidgets('the solid slider changes only saturation and can be undone', (
+      tester,
+    ) async {
+      final cubit = await pumpStudio(tester);
+      await tester.tap(find.byTooltip('Solid'));
+      await tester.pumpAndSettle();
+
+      final before = cubit.state.activeColor;
+      final slider = tester.getRect(find.byType(Slider));
+      await tester.tapAt(slider.centerLeft + Offset(slider.width * 0.3, 0));
+      await tester.pumpAndSettle();
+
+      final after = cubit.state.activeColor.hsluv;
+      expect(after.saturation, lessThan(before.hsluv.saturation));
+      expect(after.hue, closeTo(before.hsluv.hue, 0.01));
+      expect(after.lightness, before.hsluv.lightness);
+      cubit.undo();
+      expect(cubit.state.activeColor, before);
+    });
+
     test('chroma survives a trip to full lightness', () {
       for (final space in [ColorSpaceMode.oklch, ColorSpaceMode.hct]) {
         final start = StudioColor.fromSpace(

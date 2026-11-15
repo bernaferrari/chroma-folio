@@ -9,7 +9,7 @@ A colour studio you can fling. Spin three colour reels, compare the same hue acr
 | Spectrum | Solid |
 | --- | --- |
 | ![Dark Spectrum view with four aligned hue strips](docs/screenshots/spectrum.png) | ![OKLCH colour solid with a horizontal cut and a lightness reel](docs/screenshots/solid.png) |
-| Fling the strips together to compare HSLuv, OKLCH, HCT, and HSL. Touch a strip to pick from its colour space. | Drag sideways to turn the solid. Move the lightness reel to raise or lower the cut, then pick a colour on the cut face. |
+| Fling the strips together to compare HSLuv, OKLCH, HCT, and HSL. Touch a strip to pick from its colour space. | Drag sideways to turn the solid. Move the lightness reel to raise or lower the cut, then pick a colour on the cut face. Use the horizontal slider to adjust saturation or chroma at the current hue and lightness. |
 
 ![Palette view with a tonal scale and four harmony previews](docs/screenshots/palette.png)
 
