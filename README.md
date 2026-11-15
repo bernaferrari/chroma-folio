@@ -10,6 +10,10 @@
 
 <p align="center"><a href="#turn-colour-around">Explore the 3D view</a> · <a href="#run-from-source">Run the app</a> · <a href="#build-a-palette">Copy a palette</a></p>
 
+<p align="center">
+  <img src="docs/screenshots/colour-in-motion.webp" width="100%" alt="Chroma Folio in dark mode. An OKLCH solid turns as the lightness cut and selected colour change, with the specimen and both reels updating alongside it.">
+</p>
+
 ## Turn colour around
 
 In **Solid**, hue goes around the shape, lightness goes up, and chroma extends outward. Turn the shape with a sideways drag. The reel on the right raises or lowers the cut, and the horizontal reel below adjusts saturation or chroma. You can also tap anywhere on the cut face to pick a colour.
