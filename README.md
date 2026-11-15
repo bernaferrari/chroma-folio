@@ -55,8 +55,6 @@ flutter pub get
 flutter run -d chrome
 ```
 
-For Android, start an emulator or connect a device. Use `flutter devices` to find its ID, then run `flutter run -d <device-id>`.
-
 Run `flutter analyze` and `flutter test` to check the project. To build the static web app in `build/web`, run `flutter build web --release`.
 
 Chroma Folio grew out of the [hsluv-dart example](https://github.com/bernaferrari/hsluv-dart) and uses [HSLuv from pub.dev](https://pub.dev/packages/hsluv). [MIT license](LICENSE).
