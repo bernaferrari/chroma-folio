@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72"><defs><clipPath id="icon-shape"><rect x="18" y="18" width="72" height="72" rx="16"/></clipPath></defs><g clip-path="url(#icon-shape)">
+  <rect width="108" height="108" fill="#171924"/>
+
+  <defs>
+    <clipPath id="foreground-reels">
+      <rect x="29" y="33" width="14" height="42" rx="5"/>
+      <rect x="47" y="33" width="14" height="42" rx="5"/>
+      <rect x="65" y="33" width="14" height="42" rx="5"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#foreground-reels)">
+    <path fill="#24b7a6" d="M29 33h14v14H29z"/>
+    <path fill="#ab8bf2" d="M47 33h14v14H47z"/>
+    <path fill="#ccdcff" d="M65 33h14v14H65z"/>
+    <path fill="#598bff" d="M29 47h50v14H29z"/>
+    <path fill="#bf62f1" d="M29 61h14v14H29z"/>
+    <path fill="#555c86" d="M47 61h14v14H47z"/>
+    <path fill="#264994" d="M65 61h14v14H65z"/>
+  </g>
+  <g fill="none" stroke="#f2f5ff" stroke-width="1.5">
+    <rect x="29.75" y="47.75" width="12.5" height="12.5" rx="3.5"/>
+    <rect x="47.75" y="47.75" width="12.5" height="12.5" rx="3.5"/>
+    <rect x="65.75" y="47.75" width="12.5" height="12.5" rx="3.5"/>
+  </g>
+</g></svg>
