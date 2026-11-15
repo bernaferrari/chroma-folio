@@ -1,23 +1,48 @@
-# Chroma Folio
+<p align="center">
+  <img src="web/icons/Icon-192.png" width="80" height="80" alt="Chroma Folio app icon">
+</p>
 
-A colour studio you can fling. Spin three colour reels, compare the same hue across four colour spaces, or turn a 3D solid and pick directly from its cut face.
+<h1 align="center">Chroma Folio</h1>
 
-![Chroma Folio showing a blue specimen beside the hue, saturation, and lightness reels](docs/screenshots/reels.png)
+<p align="center"><strong>Flick a reel. Find a colour.</strong></p>
 
-## Four ways to explore colour
+<p align="center">A colour picker for Android and the web. Spin hue, saturation, and lightness like reels, then take the colour you find into a palette or a 3D view.</p>
 
-| Spectrum | Solid |
-| --- | --- |
-| ![Dark Spectrum view with four aligned hue strips](docs/screenshots/spectrum.png) | ![OKLCH colour solid with a horizontal cut and a lightness reel](docs/screenshots/solid.png) |
-| Fling the strips together to compare HSLuv, OKLCH, HCT, and HSL. Touch a strip to pick from its colour space. | Drag sideways to turn the solid. Move the lightness reel to raise or lower the cut, then pick a colour on the cut face. Use the horizontal slider to adjust saturation or chroma at the current hue and lightness. |
+<p align="center"><a href="#run-from-source">Run the app</a> · <a href="#turn-colour-around">Explore the 3D view</a> · <a href="#build-a-palette">Copy a palette</a></p>
 
-![Palette view with a tonal scale and four harmony previews](docs/screenshots/palette.png)
+<p align="center">
+  <img src="docs/screenshots/reels.webp" width="100%" alt="The hue reel spins through blue and purple as the specimen changes colour">
+</p>
 
-In **Reels**, drag slowly for control or fling to see where the colour lands. Tap a channel value to enter it exactly. In **Palette**, try a harmony on your eight swatches, copy the tonal scale for Tailwind, or export the palette as hex, CSS variables in OKLCH or Display P3, or Flutter code. Display P3 export converts the current sRGB colours to P3 coordinates.
+## See what a colour space changes
 
-## Run locally
+Give four colour spaces the same hue, saturation, and lightness and see how differently they render it. In **Spectrum**, the strips move together so you can compare a single hue across HSLuv, OKLCH, HCT, and HSL. Drag a strip to pick from that space.
 
-Install Flutter with Dart 3.13 or newer. The app was verified with Flutter `3.51.0-1.0.pre-56`.
+![Four synchronized hue strips in Spectrum, with HSLuv selected and the app in dark mode](docs/screenshots/spectrum.png)
+
+## Turn colour around
+
+In **Solid**, hue goes around the shape, lightness goes up, and chroma extends outward. Turn the shape with a sideways drag. The reel on the right raises or lowers the cut, and the slider below adjusts saturation or chroma. You can also tap anywhere on the cut face to pick a colour.
+
+![The OKLCH solid cut at 62 percent lightness, with the current colour marked on the slice](docs/screenshots/solid.png)
+
+## Build a palette
+
+Start with one colour and try its tonal scale or a harmony. Each harmony previews the base colour, two accents, and five supporting shades. Tap one to fill your eight swatches, then drag along the swatch strip to pick a colour to edit.
+
+![A blue tonal scale above four harmony previews with accents and supporting shades](docs/screenshots/palette.png)
+
+Copy the tonal scale for Tailwind or export your palette as hex, Flutter code, or CSS variables. For CSS, choose **OKLCH** or **Display P3**. The P3 option expresses the current sRGB colours in Display P3 coordinates.
+
+## A few gestures
+
+- **Flick a reel** to spin it, or tap a band to bring it under the lens.
+- **Tap a channel value** to enter it exactly. Use the pencil next to the hex code to paste a hex, RGB, or OKLCH colour.
+- **Tap the hex code** to copy the current colour. Press **Space** to shuffle the palette, then use **Undo** to go back.
+
+## Run from source
+
+Use Flutter with Dart 3.13 or newer. The app was verified with Flutter `3.51.0-1.0.pre-56`.
 
 ```sh
 git clone https://github.com/bernaferrari/chroma-folio.git
@@ -26,12 +51,8 @@ flutter pub get
 flutter run -d chrome
 ```
 
-To run on Android, start an emulator or connect a device and select it with `flutter run -d <device-id>`.
+For Android, start an emulator or connect a device. Use `flutter devices` to find its ID, then run `flutter run -d <device-id>`.
 
-Run `flutter analyze` and `flutter test` to check the project. Run `flutter build web --release` to build the static site in `build/web`.
+Run `flutter analyze` and `flutter test` to check the project. To build the static web app in `build/web`, run `flutter build web --release`.
 
-## Credits
-
-Chroma Folio started as the example app in [hsluv-dart](https://github.com/bernaferrari/hsluv-dart). It uses the [HSLuv package on pub.dev](https://pub.dev/packages/hsluv).
-
-[MIT license](LICENSE)
+Chroma Folio grew out of the [hsluv-dart example](https://github.com/bernaferrari/hsluv-dart) and uses [HSLuv from pub.dev](https://pub.dev/packages/hsluv). [MIT license](LICENSE).
