@@ -6,7 +6,7 @@
 
 <p align="center"><strong>See the shape of a colour space.</strong></p>
 
-<p align="center">A colour picker for Android and the web. Turn and slice a 3D colour solid, spin the reels to find a colour, then build a palette around it.</p>
+<p align="center">Turn and slice a 3D colour solid, spin the reels to find a colour, then build a palette around it.</p>
 
 <p align="center"><a href="https://bernaferrari.github.io/chroma-folio/"><strong>Try Chroma Folio ↗</strong></a> · <a href="#turn-colour-around">Explore the 3D view</a> · <a href="#run-from-source">Run the app</a> · <a href="#build-a-palette">Copy a palette</a></p>
 
