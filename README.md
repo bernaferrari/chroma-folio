@@ -16,7 +16,7 @@ In **Solid**, hue goes around the shape, lightness goes up, and chroma extends o
 
 | HSLuv | OKLCH |
 | :---: | :---: |
-| <img src="docs/screenshots/solid-hsluv.webp" width="420" alt="The HSLuv colour cylinder turns around a horizontal lightness cut"> | <img src="docs/screenshots/solid-oklch.webp" width="420" alt="The irregular OKLCH gamut turns around a horizontal lightness cut"> |
+| <img src="docs/screenshots/solid-hsluv.webp" width="420" alt="The HSLuv cylinder turns as its lightness cut rises and its saturation marker moves"> | <img src="docs/screenshots/solid-oklch.webp" width="420" alt="The OKLCH gamut turns as its lightness cut rises and its chroma marker moves"> |
 
 HSLuv's saturation scale gives the solid a cylindrical outline. In OKLCH, the outline shows how much chroma sRGB can reach at each hue and lightness.
 
