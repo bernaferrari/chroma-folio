@@ -7,6 +7,7 @@ import 'package:chroma_folio/main.dart';
 import 'package:chroma_folio/models/accessibility_utils.dart';
 import 'package:chroma_folio/models/color_spaces.dart';
 import 'package:chroma_folio/widgets/channel_reel.dart';
+import 'package:chroma_folio/widgets/studio_theme.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
@@ -393,6 +394,28 @@ void main() {
       await tester.tap(find.byIcon(Icons.undo_rounded));
       await tester.pumpAndSettle();
       expect(cubit.state.palette.map((c) => c.hex).toList(), before);
+    });
+
+    testWidgets('lens and space tabs have equal heights across layouts', (
+      tester,
+    ) async {
+      await pumpStudio(tester);
+      final selectors = find.byWidgetPredicate(
+        (widget) => widget is StudioPillSelector,
+      );
+
+      for (final width in [1280.0, 900.0, 390.0]) {
+        tester.view.physicalSize = Size(width, 900);
+        await tester.pumpAndSettle();
+        final lens = tester.getRect(selectors.at(0));
+        final space = tester.getRect(selectors.at(1));
+        expect(
+          lens.height,
+          closeTo(space.height, 0.01),
+          reason: 'width $width',
+        );
+        expect(lens.height, closeTo(40, 0.01), reason: 'width $width');
+      }
     });
 
     testWidgets('the compact layout fits a phone', (tester) async {

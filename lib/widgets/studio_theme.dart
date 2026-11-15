@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_ui/material_ui.dart';
@@ -133,6 +135,10 @@ class _PillItem<T> extends StatelessWidget {
 
     final icon = option.icon;
     final showsIconOnly = option.iconOnly && icon != null;
+    final fontSize = compact ? 12.0 : 12.5;
+    final labelHeight = MediaQuery.textScalerOf(context).scale(fontSize) * 1.15;
+    final tabHeight =
+        math.max(18.0, labelHeight.ceilToDouble()) + (compact ? 12.0 : 14.0);
 
     final item = MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -142,10 +148,8 @@ class _PillItem<T> extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 10 : 12,
-            vertical: compact ? 5 : 6,
-          ),
+          height: tabHeight,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
           decoration: BoxDecoration(
             color: selected ? selectedBg : Colors.transparent,
             borderRadius: BorderRadius.circular(compact ? 8 : 10),
@@ -162,35 +166,38 @@ class _PillItem<T> extends StatelessWidget {
                   ]
                 : null,
           ),
-          child: showsIconOnly
-              ? Icon(icon, size: 18, color: fg, semanticLabel: option.label)
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (icon != null) ...[
-                      Icon(icon, size: compact ? 14 : 15, color: fg),
-                      SizedBox(width: compact ? 5 : 6),
-                    ],
-                    Flexible(
-                      child: Text(
-                        option.label,
-                        maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.fade,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              fontSize: compact ? 12 : 12.5,
-                              fontWeight: selected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                              color: fg,
-                              height: 1.15,
-                            ),
+          child: Align(
+            widthFactor: 1,
+            child: showsIconOnly
+                ? Icon(icon, size: 18, color: fg, semanticLabel: option.label)
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: compact ? 14 : 15, color: fg),
+                        SizedBox(width: compact ? 5 : 6),
+                      ],
+                      Flexible(
+                        child: Text(
+                          option.label,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.fade,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                fontSize: fontSize,
+                                fontWeight: selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: fg,
+                                height: 1.15,
+                              ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

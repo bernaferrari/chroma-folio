@@ -151,19 +151,32 @@ class _StudioHomeState extends State<StudioHome> {
                     children: [
                       Row(
                         children: [
-                          brand,
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 172),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: brand,
+                            ),
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: fitsOneRow
-                                ? FittedBox(
-                                    fit: BoxFit.scaleDown,
+                                ? Align(
                                     alignment: Alignment.centerRight,
-                                    child: Row(
-                                      children: [
-                                        lensSelector(),
-                                        const SizedBox(width: 12),
-                                        const _SpaceSelector(),
-                                      ],
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 460,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          lensSelector(),
+                                          const SizedBox(width: 12),
+                                          const Expanded(
+                                            child: _SpaceSelector(expand: true),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   )
                                 : const SizedBox.shrink(),
