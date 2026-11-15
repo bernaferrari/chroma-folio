@@ -1,3 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
-  <path fill="#fff" fill-rule="evenodd" d="M34 33h4a5 5 0 0 1 5 5v32a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5V38a5 5 0 0 1 5-5zm-2 15v12h8V48zm20-15h4a5 5 0 0 1 5 5v32a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5V38a5 5 0 0 1 5-5zm-2 15v12h8V48zm20-15h4a5 5 0 0 1 5 5v32a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5V38a5 5 0 0 1 5-5zm-2 15v12h8V48z"/>
+  <defs>
+    <mask id="lens-cutouts">
+      <rect width="108" height="108" fill="#fff"/>
+      <g fill="#000">
+        <rect x="31" y="49" width="10" height="10" rx="2.75"/>
+        <rect x="49" y="49" width="10" height="10" rx="2.75"/>
+        <rect x="67" y="49" width="10" height="10" rx="2.75"/>
+      </g>
+    </mask>
+  </defs>
+  <g fill="#fff" mask="url(#lens-cutouts)">
+    <rect x="29" y="33" width="14" height="42" rx="5"/>
+    <rect x="47" y="33" width="14" height="42" rx="5"/>
+    <rect x="65" y="33" width="14" height="42" rx="5"/>
+  </g>
 </svg>
