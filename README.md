@@ -11,8 +11,8 @@
 <p align="center"><a href="https://bernaferrari.github.io/chroma-folio/"><strong>Try Chroma Folio ↗</strong></a> · <a href="#turn-colour-around">Explore the 3D view</a> · <a href="#run-from-source">Run the app</a> · <a href="#build-a-palette">Copy a palette</a></p>
 
 <p align="center">
-  <img src="docs/screenshots/colour-in-motion.webp" width="100%" alt="Dragging the lightness reel lowers the cut through the OKLCH solid. The colour specimen darkens as the cut moves.">
-  <br><sub>Drag the lightness reel to move the cut through the colour solid.</sub>
+  <img src="docs/screenshots/colour-in-motion.webp" width="100%" alt="Dragging the lightness reel raises the OKLCH cut from 45% to 70% and brightens the blue specimen.">
+  <br><sub>Raise the cut from 45% to 70% lightness.</sub>
 </p>
 
 ## Turn colour around
