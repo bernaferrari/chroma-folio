@@ -253,17 +253,9 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 8, _levelReelWidth + 12, 0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(saturation.name),
-                      Text(
-                        saturation.formattedValue,
-                        style: studioMonoStyle(context, fontSize: 11),
-                      ),
-                    ],
-                  ),
+                  Text('${saturation.name} ${saturation.formattedValue}'),
                   const SizedBox(height: 6),
                   SizedBox(
                     height: _levelReelWidth,

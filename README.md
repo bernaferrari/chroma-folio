@@ -11,7 +11,8 @@
 <p align="center"><a href="#turn-colour-around">Explore the 3D view</a> · <a href="#run-from-source">Run the app</a> · <a href="#build-a-palette">Copy a palette</a></p>
 
 <p align="center">
-  <img src="docs/screenshots/colour-in-motion.webp" width="100%" alt="Chroma Folio in dark mode. An OKLCH solid turns as the lightness cut and selected colour change, with the specimen and both reels updating alongside it.">
+  <img src="docs/screenshots/colour-in-motion.webp" width="100%" alt="Dragging the lightness reel lowers the cut through the OKLCH solid. The colour specimen darkens as the cut moves.">
+  <br><sub>Drag the lightness reel to move the cut through the colour solid.</sub>
 </p>
 
 ## Turn colour around
