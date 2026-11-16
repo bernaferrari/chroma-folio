@@ -239,7 +239,7 @@ class OklchColor extends Equatable {
 
   static bool _isLinearSrgbInGamut(double l, double a, double b) {
     final rgb = _oklabToLinearSrgb(l, a, b);
-    const eps = 1e-5;
+    const eps = 1e-9;
     return rgb[0] >= -eps &&
         rgb[0] <= 1.0 + eps &&
         rgb[1] >= -eps &&
