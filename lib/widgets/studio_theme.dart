@@ -100,39 +100,71 @@ class const _PillItem<T>({
   required final Color selectedBorder,
   required final VoidCallback onTap,
   final Color? inkOverride,
-}) extends StatelessWidget {
+}) extends StatefulWidget {
+  @override
+  State<_PillItem<T>> createState() => _PillItemState<T>();
+}
+
+class _PillItemState<T> extends State<_PillItem<T>> {
+  bool _showFocus = false;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inkOverride = widget.inkOverride;
+    final selected = widget.selected;
+    final compact = widget.compact;
+    final option = widget.option;
     final fg = inkOverride != null
-        ? inkOverride!.withValues(alpha: selected ? 0.96 : 0.65)
+        ? inkOverride.withValues(alpha: selected ? 0.96 : 0.65)
         : (selected ? scheme.onSurface : scheme.onSurfaceVariant);
 
     final icon = option.icon;
     final showsIconOnly = option.iconOnly && icon != null;
     final fontSize = compact ? 12.0 : 12.5;
     final labelHeight = MediaQuery.textScalerOf(context).scale(fontSize) * 1.15;
-    final tabHeight =
-        math.max(18.0, labelHeight.ceilToDouble()) + (compact ? 12.0 : 14.0);
+    final tabHeight = compact
+        ? math.max(30.0, labelHeight.ceilToDouble() + 12)
+        : math.max(44.0, labelHeight.ceilToDouble() + 14);
 
-    final item = MouseRegion(
-      cursor: SystemMouseCursors.click,
+    final item = FocusableActionDetector(
+      mouseCursor: SystemMouseCursors.click,
+      onShowFocusHighlight: (show) => setState(() => _showFocus = show),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter, includeRepeats: false):
+            ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+        onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
           height: tabHeight,
           padding: EdgeInsets.symmetric(
-            horizontal: expand ? 6 : (compact ? 10 : 12),
+            horizontal: widget.expand ? 6 : (compact ? 10 : 12),
           ),
           decoration: BoxDecoration(
-            color: selected ? selectedBg : Colors.transparent,
+            color: selected ? widget.selectedBg : Colors.transparent,
             borderRadius: BorderRadius.circular(compact ? 8 : 10),
             border: Border.all(
-              color: selected ? selectedBorder : Colors.transparent,
+              color: _showFocus
+                  ? fg
+                  : selected
+                  ? widget.selectedBorder
+                  : Colors.transparent,
             ),
             boxShadow: selected && !isDark && inkOverride == null
                 ? [
@@ -179,11 +211,13 @@ class const _PillItem<T>({
         ),
       ),
     );
-    if (!showsIconOnly) return item;
+    final button = Semantics(button: true, selected: selected, child: item);
+    if (!showsIconOnly) return button;
     return Tooltip(
       message: option.label,
+      excludeFromSemantics: true,
       waitDuration: const Duration(milliseconds: 400),
-      child: item,
+      child: button,
     );
   }
 }

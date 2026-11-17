@@ -29,7 +29,7 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
           builder: (context, constraints) {
             final isShort = constraints.maxHeight < 520;
 
-            return Column(
+            final content = Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _SectionHeader(
@@ -81,6 +81,11 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _CopyPaletteBar(palette: state.palette),
+              ],
+            );
+            return CustomScrollView(
+              slivers: [
+                SliverFillRemaining(hasScrollBody: false, child: content),
               ],
             );
           },
@@ -349,42 +354,45 @@ class _HarmonyChordCardState extends State<_HarmonyChordCard> {
                   ),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: ColoredBox(
-                                    color: chord.colors[0].color,
-                                  ),
-                                ),
-                                for (final swatch
-                                    in chord.colors.skip(1).take(2))
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 24),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
                                   Expanded(
-                                    child: ColoredBox(color: swatch.color),
+                                    flex: 3,
+                                    child: ColoredBox(
+                                      color: chord.colors[0].color,
+                                    ),
                                   ),
-                              ],
+                                  for (final swatch
+                                      in chord.colors.skip(1).take(2))
+                                    Expanded(
+                                      child: ColoredBox(color: swatch.color),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Expanded(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                for (final swatch in chord.colors.skip(3))
-                                  Expanded(
-                                    child: ColoredBox(color: swatch.color),
-                                  ),
-                              ],
+                            Expanded(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  for (final swatch in chord.colors.skip(3))
+                                    Expanded(
+                                      child: ColoredBox(color: swatch.color),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

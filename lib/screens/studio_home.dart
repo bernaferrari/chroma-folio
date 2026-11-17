@@ -22,8 +22,8 @@ class const StudioHome({super.key}) extends StatefulWidget {
 
 class _StudioHomeState extends State<StudioHome> {
   static const double _sidePanelBreakpoint = 900;
-  static const double _singleRowToolbarWidth = 740;
-  static const double _sideBySideToolsWidth = 500;
+  static const double _singleRowToolbarWidth = 892;
+  static const double _sideBySideToolsWidth = 568;
 
   _Lens _lens = _Lens.reels;
 
@@ -65,39 +65,25 @@ class _StudioHomeState extends State<StudioHome> {
       softWrap: false,
       style: studioDisplayStyle(context, fontSize: 28, height: 1.0),
     );
-    StudioPillSelector<_Lens> lensSelector({bool expand = false}) {
-      return StudioPillSelector<_Lens>(
-        value: _lens,
-        expand: expand,
-        options: const [
-          StudioPillOption(
-            value: _Lens.reels,
-            label: 'Reels',
-            icon: Icons.view_week_rounded,
-            iconOnly: true,
-          ),
-          StudioPillOption(
-            value: _Lens.spectrum,
-            label: 'Spectrum',
-            icon: Icons.table_rows_rounded,
-            iconOnly: true,
-          ),
-          StudioPillOption(
-            value: _Lens.solid,
-            label: 'Solid',
-            icon: Icons.view_in_ar_rounded,
-            iconOnly: true,
-          ),
-          StudioPillOption(
-            value: _Lens.palette,
-            label: 'Palette',
-            icon: Icons.palette_outlined,
-            iconOnly: true,
-          ),
-        ],
-        onChanged: (lens) => setState(() => _lens = lens),
-      );
-    }
+    final lensSelector = StudioPillSelector<_Lens>(
+      value: _lens,
+      expand: true,
+      options: const [
+        StudioPillOption(value: _Lens.reels, label: 'Reels'),
+        StudioPillOption(value: _Lens.spectrum, label: 'Spectrum'),
+        StudioPillOption(value: _Lens.solid, label: 'Solid'),
+        StudioPillOption(value: _Lens.palette, label: 'Palette'),
+      ],
+      onChanged: (lens) => setState(() => _lens = lens),
+    );
+    const spaceSelector = _SpaceSelector();
+    final horizontalSelectors = Row(
+      children: [
+        Expanded(flex: 4, child: lensSelector),
+        const SizedBox(width: 12),
+        const Expanded(flex: 3, child: spaceSelector),
+      ],
+    );
 
     const actions = _HistoryAndThemeActions();
 
@@ -113,17 +99,10 @@ class _StudioHomeState extends State<StudioHome> {
         if (constraints.maxWidth < _sideBySideToolsWidth) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              lensSelector(expand: true),
-              const SizedBox(height: 8),
-              const _SpaceSelector(expand: true),
-            ],
+            children: [lensSelector, const SizedBox(height: 8), spaceSelector],
           );
         }
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [lensSelector(), const _SpaceSelector()],
-        );
+        return horizontalSelectors;
       },
     );
 
@@ -160,23 +139,7 @@ class _StudioHomeState extends State<StudioHome> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: fitsOneRow
-                                ? Align(
-                                    alignment: Alignment.centerRight,
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 460,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          lensSelector(),
-                                          const SizedBox(width: 12),
-                                          const Expanded(
-                                            child: _SpaceSelector(expand: true),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
+                                ? horizontalSelectors
                                 : const SizedBox.shrink(),
                           ),
                           const SizedBox(width: 12),
@@ -252,8 +215,7 @@ class _StudioHomeState extends State<StudioHome> {
   }
 }
 
-class const _SpaceSelector({final bool expand = false})
-    extends StatelessWidget {
+class const _SpaceSelector() extends StatelessWidget {
   static const _spaces = [
     ColorSpaceMode.hsluv,
     ColorSpaceMode.oklch,
@@ -268,7 +230,7 @@ class const _SpaceSelector({final bool expand = false})
     );
     return StudioPillSelector<ColorSpaceMode>(
       value: _spaces.contains(space) ? space : ColorSpaceMode.hsluv,
-      expand: expand,
+      expand: true,
       options: [
         for (final option in _spaces)
           StudioPillOption(value: option, label: option.label),

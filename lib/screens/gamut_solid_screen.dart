@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/physics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -38,12 +39,16 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   late final Animation<double> _progress;
   late final Listenable _repaint;
   final _zoom = ValueNotifier(1.0);
+  final _pointers = <int>{};
+  bool _pinched = false;
+  double _zoomAtScaleStart = 1;
+  Offset? _pointerStart;
   late _SolidFrame _targetFrame;
   _SolidFrame? _fromFrame;
   late ColorSpaceMode _space;
   late int _shuffleRevision;
   _Grab _grab = _Grab.undecided;
-  Offset _travel = Offset.zero;
+  Offset _lastFocalPoint = Offset.zero;
   Size _size = Size.zero;
   final Map<ColorSpaceMode, _Slice> _slices = {};
 
@@ -141,11 +146,17 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   void _handleScroll(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
     GestureBinding.instance.pointerSignalResolver.register(event, (_) {
-      _zoom.value = (_zoom.value * math.exp(-event.scrollDelta.dy / 420)).clamp(
-        0.65,
-        2.6,
-      );
+      _setZoom(_zoom.value * math.exp(-event.scrollDelta.dy / 420));
     });
+  }
+
+  void _setZoom(double zoom) => _zoom.value = zoom.clamp(0.65, 2.6);
+
+  void _resetView() {
+    final state = _cubit.state;
+    final hue = state.activeColor.channelsFor(state.activeSpace)[0].value;
+    _spin.value = _Camera.yawFacing(hue);
+    _zoom.value = 1;
   }
 
   /// The colour on the cut face under [position], if there is one.
@@ -171,32 +182,63 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     if (color != null) _cubit.setActiveColor(color, recordHistory: false);
   }
 
-  void _handlePanStart(DragStartDetails details) {
-    _finishMorph();
+  void _handlePointerDown(PointerDownEvent event) {
+    if (_pointers.isEmpty) {
+      _pointerStart = event.localPosition;
+      _pinched = false;
+    } else {
+      // Keep the rest of this gesture from editing the cut face.
+      _pinched = true;
+    }
+    _pointers.add(event.pointer);
+  }
+
+  void _releasePointer(PointerEvent event) {
+    _pointers.remove(event.pointer);
+    if (_pointers.isEmpty) _pointerStart = null;
+  }
+
+  void _handleScaleStart(ScaleStartDetails details) {
     _spin.stop();
-    _travel = Offset.zero;
-    if (_colorOnSlice(details.localPosition) == null) {
+    _zoomAtScaleStart = _zoom.value;
+    _pinched = _pinched || details.pointerCount > 1;
+    if (_pinched) return;
+
+    _finishMorph();
+    final start = _pointerStart ?? details.localFocalPoint;
+    _lastFocalPoint = start;
+    if (_colorOnSlice(start) == null) {
       _grab = _Grab.undecided;
       return;
     }
     _grab = _Grab.pick;
     _cubit.beginScrub();
-    _pickAt(details.localPosition);
+    _pickAt(start);
   }
 
-  void _handlePanUpdate(DragUpdateDetails details) {
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    if (details.pointerCount > 1) {
+      _setZoom(_zoomAtScaleStart * details.scale);
+      return;
+    }
+    if (_pinched) return;
+
+    final delta = details.localFocalPoint - _lastFocalPoint;
+    if (_grab == _Grab.undecided) {
+      if (delta.distance < _decideAfter) return;
+      if (delta.dx.abs() >= delta.dy.abs()) {
+        _grab = _Grab.turn;
+      } else {
+        _grab = _Grab.lift;
+        _cubit.beginScrub();
+      }
+    }
+    _lastFocalPoint = details.localFocalPoint;
     switch (_grab) {
       case _Grab.undecided:
-        _travel += details.delta;
-        if (_travel.distance < _decideAfter) return;
-        if (_travel.dx.abs() >= _travel.dy.abs()) {
-          _grab = _Grab.turn;
-        } else {
-          _grab = _Grab.lift;
-          _cubit.beginScrub();
-        }
+        break;
       case _Grab.turn:
-        _spin.value += _camera.turnFor(details.delta.dx);
+        _spin.value += _camera.turnFor(delta.dx);
       case _Grab.lift:
         final state = _cubit.state;
         final lightness = state.activeColor
@@ -204,38 +246,31 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
             .value;
         _cubit.scrubChannel(
           2,
-          (lightness + _camera.liftFor(details.delta.dy)).clamp(0.0, 100.0),
+          (lightness + _camera.liftFor(delta.dy)).clamp(0.0, 100.0),
         );
       case _Grab.pick:
-        _pickAt(details.localPosition);
+        _pickAt(details.localFocalPoint);
     }
   }
 
-  void _handlePanEnd(DragEndDetails details) {
-    switch (_grab) {
-      case _Grab.undecided:
-        break;
-      case _Grab.turn:
-        _spin.animateWith(
-          FrictionSimulation(
-            _spinFriction,
-            _spin.value,
-            _camera.turnFor(details.velocity.pixelsPerSecond.dx),
-          ),
-        );
-      case _Grab.lift:
-      case _Grab.pick:
-        break;
+  void _handleScaleEnd(ScaleEndDetails details) {
+    if (_grab == _Grab.turn &&
+        details.pointerCount == 0 &&
+        !MediaQuery.disableAnimationsOf(context)) {
+      _spin.animateWith(
+        FrictionSimulation(
+          _spinFriction,
+          _spin.value,
+          _camera.turnFor(details.velocity.pixelsPerSecond.dx),
+        ),
+      );
     }
-    _endGrab();
-  }
-
-  void _endGrab() {
     if (_grab == _Grab.lift || _grab == _Grab.pick) _cubit.endScrub();
     _grab = _Grab.undecided;
   }
 
   void _handleTapUp(TapUpDetails details) {
+    if (_pinched) return;
     _finishMorph();
     final color = _colorOnSlice(details.localPosition);
     if (color != null) _cubit.setActiveColor(color);
@@ -259,16 +294,18 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
             return ClipRect(
               child: Listener(
                 onPointerSignal: _handleScroll,
+                onPointerDown: _handlePointerDown,
+                onPointerUp: _releasePointer,
+                onPointerCancel: _releasePointer,
                 child: MouseRegion(
                   cursor: SystemMouseCursors.grab,
                   child: GestureDetector(
                     key: const ValueKey<String>('gamut_solid_canvas'),
                     behavior: HitTestBehavior.opaque,
                     dragStartBehavior: DragStartBehavior.down,
-                    onPanStart: _handlePanStart,
-                    onPanUpdate: _handlePanUpdate,
-                    onPanEnd: _handlePanEnd,
-                    onPanCancel: _endGrab,
+                    onScaleStart: _handleScaleStart,
+                    onScaleUpdate: _handleScaleUpdate,
+                    onScaleEnd: _handleScaleEnd,
                     onTapUp: _handleTapUp,
                     child: CustomPaint(
                       size: Size.infinite,
@@ -295,8 +332,6 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
                     space.label,
@@ -313,6 +348,23 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
                       context,
                       fontSize: 11,
                       color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Shortcuts(
+                    shortcuts: const {
+                      SingleActivator(LogicalKeyboardKey.space):
+                          ActivateIntent(),
+                    },
+                    child: IconButton(
+                      tooltip: 'Reset view',
+                      onPressed: _resetView,
+                      icon: const Icon(Icons.fit_screen_outlined, size: 19),
+                      color: scheme.onSurfaceVariant,
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size.square(44),
+                        visualDensity: VisualDensity.standard,
+                      ),
                     ),
                   ),
                 ],

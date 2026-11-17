@@ -232,7 +232,7 @@ void main() {
     testWidgets('spectrum spins every space together', (tester) async {
       final cubit = await pumpStudio(tester);
 
-      await tester.tap(find.byTooltip('Spectrum'));
+      await tester.tap(find.text('Spectrum'));
       await tester.pumpAndSettle();
       expect(find.text('HSL'), findsNWidgets(2));
 
@@ -254,7 +254,7 @@ void main() {
     ) async {
       final cubit = await pumpStudio(tester);
 
-      await tester.tap(find.byTooltip('Spectrum'));
+      await tester.tap(find.text('Spectrum'));
       await tester.pumpAndSettle();
 
       final before = cubit.state.activeColor.hsluv;
@@ -271,10 +271,23 @@ void main() {
       expect(picked.hsl.lightness * 100, closeTo(before.lightness, 0.01));
     });
 
+    Future<int> solidFrame(WidgetTester tester, Finder viewport) async {
+      final boundary = tester.renderObject<RenderRepaintBoundary>(viewport);
+      return (await tester.runAsync(() async {
+        final image = await boundary.toImage(pixelRatio: 0.25);
+        try {
+          final data = (await image.toByteData())!;
+          return Object.hashAll(data.buffer.asUint8List());
+        } finally {
+          image.dispose();
+        }
+      }))!;
+    }
+
     testWidgets('the solid turns sideways and lifts its slice', (tester) async {
       final cubit = await pumpStudio(tester);
 
-      await tester.tap(find.byTooltip('Solid'));
+      await tester.tap(find.text('Solid'));
       await tester.pumpAndSettle();
       final solid = find.byKey(const ValueKey<String>('gamut_solid_canvas'));
       final edge = tester.getTopLeft(solid) + const Offset(24, 24);
@@ -300,37 +313,24 @@ void main() {
       tester,
     ) async {
       final cubit = await pumpStudio(tester);
-      await tester.tap(find.byTooltip('Solid'));
+      await tester.tap(find.text('Solid'));
       await tester.pumpAndSettle();
       final viewport = find.byKey(const ValueKey('gamut_solid_viewport'));
       final before = cubit.state.activeColor;
 
-      Future<int> frame() async {
-        final boundary = tester.renderObject<RenderRepaintBoundary>(viewport);
-        return (await tester.runAsync(() async {
-          final image = await boundary.toImage(pixelRatio: 0.25);
-          try {
-            final data = (await image.toByteData())!;
-            return Object.hashAll(data.buffer.asUint8List());
-          } finally {
-            image.dispose();
-          }
-        }))!;
-      }
-
-      final original = await frame();
+      final original = await solidFrame(tester, viewport);
       await tester.tap(find.text('OKLCH'));
       await tester.pump();
-      expect(await frame(), original);
+      expect(await solidFrame(tester, viewport), original);
       await tester.pump(const Duration(milliseconds: 120));
-      final halfway = await frame();
+      final halfway = await solidFrame(tester, viewport);
       expect(halfway, isNot(original));
 
       await tester.tap(find.text('HSL'));
       await tester.pump();
-      expect(await frame(), halfway);
+      expect(await solidFrame(tester, viewport), halfway);
       await tester.pumpAndSettle();
-      final finished = await frame();
+      final finished = await solidFrame(tester, viewport);
       expect(finished, isNot(halfway));
 
       await tester.sendEventToBinding(
@@ -340,16 +340,65 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(await frame(), isNot(finished));
+      expect(await solidFrame(tester, viewport), isNot(finished));
       expect(cubit.state.activeColor, before);
       expect(cubit.state.canUndo, isFalse);
     });
 
     testWidgets(
+      'pinching the solid and resetting its view only move the camera',
+      (tester) async {
+        final cubit = await pumpStudio(tester);
+        await tester.tap(find.text('Solid'));
+        await tester.pumpAndSettle();
+        final viewport = find.byKey(const ValueKey('gamut_solid_viewport'));
+        final before = cubit.state.activeColor;
+        final original = await solidFrame(tester, viewport);
+        final center = tester.getCenter(viewport);
+
+        final left = await tester.startGesture(center - const Offset(35, 0));
+        final right = await tester.startGesture(center + const Offset(35, 0));
+        await left.moveBy(const Offset(-35, 0));
+        await right.moveBy(const Offset(35, 0));
+        await tester.pump();
+        final zoomed = await solidFrame(tester, viewport);
+        expect(zoomed, isNot(original));
+
+        await left.up();
+        await right.moveBy(const Offset(0, 68));
+        await right.up();
+        await tester.pumpAndSettle();
+        expect(await solidFrame(tester, viewport), zoomed);
+
+        final edge = tester.getTopLeft(viewport) + const Offset(24, 24);
+        await tester.dragFrom(edge, const Offset(140, 0));
+        await tester.pumpAndSettle();
+        expect(await solidFrame(tester, viewport), isNot(zoomed));
+
+        final reset = find.widgetWithIcon(
+          IconButton,
+          Icons.fit_screen_outlined,
+        );
+        expect(tester.getSize(reset).shortestSide, greaterThanOrEqualTo(44));
+        final resetIcon = tester.element(
+          find.byIcon(Icons.fit_screen_outlined),
+        );
+        final resetFocus = Focus.of(resetIcon)..requestFocus();
+        await tester.pump();
+        expect(resetFocus.hasPrimaryFocus, isTrue);
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+        expect(await solidFrame(tester, viewport), original);
+        expect(cubit.state.activeColor, before);
+        expect(cubit.state.canUndo, isFalse);
+      },
+    );
+
+    testWidgets(
       'the solid bottom reels adjust hue and saturation independently',
       (tester) async {
         final cubit = await pumpStudio(tester);
-        await tester.tap(find.byTooltip('Solid'));
+        await tester.tap(find.text('Solid'));
         await tester.pumpAndSettle();
 
         final before = cubit.state.activeColor;
@@ -398,7 +447,7 @@ void main() {
     testWidgets('a harmony fills the palette', (tester) async {
       final cubit = await pumpStudio(tester);
 
-      await tester.tap(find.byTooltip('Palette'));
+      await tester.tap(find.text('Palette'));
       await tester.pumpAndSettle();
       expect(find.text('50'), findsOneWidget);
       expect(find.text('950'), findsOneWidget);
@@ -428,7 +477,7 @@ void main() {
       );
 
       final cubit = await pumpStudio(tester);
-      await tester.tap(find.byTooltip('Palette'));
+      await tester.tap(find.text('Palette'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('CSS'));
       await tester.pumpAndSettle();
@@ -481,7 +530,7 @@ void main() {
         (widget) => widget is StudioPillSelector,
       );
 
-      for (final width in [1280.0, 900.0, 390.0]) {
+      for (final width in [1440.0, 1280.0, 900.0, 390.0]) {
         tester.view.physicalSize = Size(width, 900);
         await tester.pumpAndSettle();
         final lens = tester.getRect(selectors.at(0));
@@ -491,8 +540,47 @@ void main() {
           closeTo(space.height, 0.01),
           reason: 'width $width',
         );
-        expect(lens.height, closeTo(40, 0.01), reason: 'width $width');
+        expect(lens.height, 52, reason: 'width $width');
       }
+    });
+
+    testWidgets('keyboard tabs activate without shuffling the palette', (
+      tester,
+    ) async {
+      final cubit = await pumpStudio(tester);
+      final revision = cubit.state.shuffleRevision;
+      Widget? focusedControl() => FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<FocusableActionDetector>();
+      Widget tabControl(String label) => tester.widget(
+        find
+            .ancestor(
+              of: find.text(label),
+              matching: find.byType(FocusableActionDetector),
+            )
+            .first,
+      );
+
+      for (var i = 0; i < 20 && focusedControl() != tabControl('Solid'); i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      expect(focusedControl(), tabControl('Solid'));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.space);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('gamut_solid_canvas')), findsOneWidget);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
+      await tester.pump();
+      expect(focusedControl(), tabControl('Spectrum'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('gamut_solid_canvas')), findsNothing);
+      expect(cubit.state.shuffleRevision, revision);
     });
 
     testWidgets('the compact layout fits a phone', (tester) async {
@@ -504,11 +592,31 @@ void main() {
       await tester.pumpWidget(StudioApp(cubit: StudioCubit()));
       await tester.pumpAndSettle();
       for (final lens in ['Spectrum', 'Solid', 'Palette', 'Reels']) {
-        await tester.tap(find.byTooltip(lens));
+        final target = find
+            .ancestor(
+              of: find.text(lens),
+              matching: find.byType(FocusableActionDetector),
+            )
+            .first;
+        final size = tester.getSize(target);
+        expect(size.height, greaterThanOrEqualTo(44), reason: lens);
+        expect(size.width, greaterThanOrEqualTo(44), reason: lens);
+        await tester.tap(find.text(lens));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: lens);
       }
       expect(find.byType(ChannelReel), findsNWidgets(3));
+
+      tester.view.physicalSize = const Size(360, 640);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Palette'));
+      await tester.pumpAndSettle();
+      final copy = find.text('Copy palette').hitTestable();
+      expect(copy, findsNothing);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(copy, findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }
