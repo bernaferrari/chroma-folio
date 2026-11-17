@@ -14,6 +14,7 @@ class const StudioState({
   required final ThemeMode themeMode,
   required final List<List<StudioColor>> undoStack,
   required final List<List<StudioColor>> redoStack,
+  final int shuffleRevision = 0,
 }) extends Equatable {
   factory initial() {
     return StudioState(
@@ -37,6 +38,7 @@ class const StudioState({
     ThemeMode? themeMode,
     List<List<StudioColor>>? undoStack,
     List<List<StudioColor>>? redoStack,
+    int? shuffleRevision,
   }) {
     return StudioState(
       palette: palette ?? this.palette,
@@ -45,6 +47,7 @@ class const StudioState({
       themeMode: themeMode ?? this.themeMode,
       undoStack: undoStack ?? this.undoStack,
       redoStack: redoStack ?? this.redoStack,
+      shuffleRevision: shuffleRevision ?? this.shuffleRevision,
     );
   }
 
@@ -56,6 +59,7 @@ class const StudioState({
     themeMode,
     undoStack,
     redoStack,
+    shuffleRevision,
   ];
 }
 
@@ -152,6 +156,7 @@ class StudioCubit() extends Cubit<StudioState> {
     emit(
       state.copyWith(
         palette: generateHarmoniousPalette(seedHue),
+        shuffleRevision: state.shuffleRevision + 1,
         undoStack: _pushUndo(state.undoStack, state.palette),
         redoStack: const [],
       ),

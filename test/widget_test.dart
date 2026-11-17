@@ -1,3 +1,5 @@
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -294,6 +296,55 @@ void main() {
       expect(cubit.state.activeColor.hsluv.lightness, lowered.lightness);
     });
 
+    testWidgets('the solid retargets its morph and zooms with the wheel', (
+      tester,
+    ) async {
+      final cubit = await pumpStudio(tester);
+      await tester.tap(find.byTooltip('Solid'));
+      await tester.pumpAndSettle();
+      final viewport = find.byKey(const ValueKey('gamut_solid_viewport'));
+      final before = cubit.state.activeColor;
+
+      Future<int> frame() async {
+        final boundary = tester.renderObject<RenderRepaintBoundary>(viewport);
+        return (await tester.runAsync(() async {
+          final image = await boundary.toImage(pixelRatio: 0.25);
+          try {
+            final data = (await image.toByteData())!;
+            return Object.hashAll(data.buffer.asUint8List());
+          } finally {
+            image.dispose();
+          }
+        }))!;
+      }
+
+      final original = await frame();
+      await tester.tap(find.text('OKLCH'));
+      await tester.pump();
+      expect(await frame(), original);
+      await tester.pump(const Duration(milliseconds: 120));
+      final halfway = await frame();
+      expect(halfway, isNot(original));
+
+      await tester.tap(find.text('HSL'));
+      await tester.pump();
+      expect(await frame(), halfway);
+      await tester.pumpAndSettle();
+      final finished = await frame();
+      expect(finished, isNot(halfway));
+
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: tester.getCenter(viewport),
+          scrollDelta: const Offset(0, -180),
+        ),
+      );
+      await tester.pump();
+      expect(await frame(), isNot(finished));
+      expect(cubit.state.activeColor, before);
+      expect(cubit.state.canUndo, isFalse);
+    });
+
     testWidgets(
       'the solid bottom reels adjust hue and saturation independently',
       (tester) async {
@@ -395,9 +446,20 @@ void main() {
     ) async {
       final cubit = await pumpStudio(tester);
       final before = cubit.state.palette.map((c) => c.hex).toList();
+      final originalColor = cubit.state.activeColor.color;
+      final specimen = find.byKey(const ValueKey('specimen_background'));
+      Color? displayedColor() =>
+          (tester.widget<Container>(specimen).decoration as BoxDecoration)
+              .color;
 
       await tester.tap(find.byIcon(Icons.shuffle_rounded));
+      await tester.pump();
+      expect(displayedColor(), originalColor);
+      await tester.pump(const Duration(milliseconds: 70));
+      expect(displayedColor(), isNot(originalColor));
+      expect(displayedColor(), isNot(cubit.state.activeColor.color));
       await tester.pumpAndSettle();
+      expect(displayedColor(), cubit.state.activeColor.color);
       final shuffled = cubit.state.palette.map((c) => c.hex).toList();
       expect(shuffled, isNot(before));
 

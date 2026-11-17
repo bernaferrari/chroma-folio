@@ -20,6 +20,8 @@ class const SpecimenStage({
 }
 
 class _SpecimenStageState extends State<SpecimenStage> {
+  int? _shuffleRevision;
+
   @override
   void initState() {
     super.initState();
@@ -66,92 +68,111 @@ class _SpecimenStageState extends State<SpecimenStage> {
       buildWhen: (prev, next) =>
           prev.palette != next.palette ||
           prev.selectedIndex != next.selectedIndex ||
-          prev.activeSpace != next.activeSpace,
+          prev.activeSpace != next.activeSpace ||
+          prev.shuffleRevision != next.shuffleRevision,
       builder: (context, state) {
         final cubit = context.read<StudioCubit>();
         final active = state.activeColor;
-        final ink = contrastingTextColor(active.color);
         final name = ColorNameLookup.nearestNameSync(active.color) ?? '';
+        final shuffled =
+            _shuffleRevision != null &&
+            _shuffleRevision != state.shuffleRevision;
+        _shuffleRevision = state.shuffleRevision;
+        final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-        return Container(
-          decoration: BoxDecoration(
-            color: active.color,
-            borderRadius: BorderRadius.circular(expanded ? 32 : 28),
-            border: Border.all(color: ink.withValues(alpha: 0.08)),
-            boxShadow: [
-              BoxShadow(
-                color: active.color.withValues(alpha: 0.26),
-                blurRadius: 32,
-                offset: const Offset(0, 14),
-              ),
-            ],
+        return TweenAnimationBuilder<Color?>(
+          key: ValueKey(reduceMotion),
+          tween: ColorTween(end: active.color),
+          duration: shuffled && !reduceMotion
+              ? const Duration(milliseconds: 220)
+              : Duration.zero,
+          curve: Curves.easeOutCubic,
+          child: _PaletteTray(
+            palette: state.palette,
+            selectedIndex: state.selectedIndex,
+            onSelect: (index) {
+              if (index == state.selectedIndex) return;
+              HapticFeedback.selectionClick();
+              cubit.selectSlot(index);
+            },
+            onShuffle: () {
+              HapticFeedback.lightImpact();
+              cubit.shufflePalette();
+            },
           ),
-          padding: EdgeInsets.all(expanded ? 24 : 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
-            children: [
-              if (expanded) const Spacer(),
-              Text(
-                name,
-                maxLines: expanded ? 2 : 1,
-                overflow: TextOverflow.ellipsis,
-                style: studioDisplayStyle(
-                  context,
-                  fontSize: expanded ? 56 : 38,
-                  height: 1.0,
-                  letterSpacing: -0.6,
-                  color: ink,
-                ),
-              ),
-              SizedBox(height: expanded ? 14 : 10),
-              Row(
-                children: [
-                  _HexLabel(
-                    hex: active.hex,
-                    ink: ink,
-                    onTap: () => copyWithFeedback(context, active.hex),
-                  ),
-                  const SizedBox(width: 4),
-                  _QuietIconButton(
-                    icon: Icons.edit_outlined,
-                    tooltip: 'Enter a colour',
-                    ink: ink,
-                    onTap: () => _enterColor(active),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _coordinates(active, state.activeSpace),
-                      maxLines: 1,
-                      overflow: TextOverflow.fade,
-                      softWrap: false,
-                      textAlign: TextAlign.end,
-                      style: studioMonoStyle(
-                        context,
-                        fontSize: 12,
-                        color: ink.withValues(alpha: 0.7),
-                      ),
-                    ),
+          builder: (context, color, palette) {
+            final displayed = color ?? active.color;
+            final ink = contrastingTextColor(displayed);
+            return Container(
+              key: const ValueKey('specimen_background'),
+              decoration: BoxDecoration(
+                color: displayed,
+                borderRadius: BorderRadius.circular(expanded ? 32 : 28),
+                border: Border.all(color: ink.withValues(alpha: 0.08)),
+                boxShadow: [
+                  BoxShadow(
+                    color: displayed.withValues(alpha: 0.26),
+                    blurRadius: 32,
+                    offset: const Offset(0, 14),
                   ),
                 ],
               ),
-              SizedBox(height: expanded ? 16 : 12),
-              _PaletteTray(
-                palette: state.palette,
-                selectedIndex: state.selectedIndex,
-                onSelect: (index) {
-                  if (index == state.selectedIndex) return;
-                  HapticFeedback.selectionClick();
-                  cubit.selectSlot(index);
-                },
-                onShuffle: () {
-                  HapticFeedback.lightImpact();
-                  cubit.shufflePalette();
-                },
+              padding: EdgeInsets.all(expanded ? 24 : 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
+                children: [
+                  if (expanded) const Spacer(),
+                  Text(
+                    name,
+                    maxLines: expanded ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: studioDisplayStyle(
+                      context,
+                      fontSize: expanded ? 56 : 38,
+                      height: 1.0,
+                      letterSpacing: -0.6,
+                      color: ink,
+                    ),
+                  ),
+                  SizedBox(height: expanded ? 14 : 10),
+                  Row(
+                    children: [
+                      _HexLabel(
+                        hex: active.hex,
+                        ink: ink,
+                        onTap: () => copyWithFeedback(context, active.hex),
+                      ),
+                      const SizedBox(width: 4),
+                      _QuietIconButton(
+                        icon: Icons.edit_outlined,
+                        tooltip: 'Enter a colour',
+                        ink: ink,
+                        onTap: () => _enterColor(active),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _coordinates(active, state.activeSpace),
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                          textAlign: TextAlign.end,
+                          style: studioMonoStyle(
+                            context,
+                            fontSize: 12,
+                            color: ink.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: expanded ? 16 : 12),
+                  palette!,
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -339,7 +360,9 @@ class const _Swatch({
   Widget build(BuildContext context) {
     final corner = isSelected ? _chipCorner : _neighbourCorner;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
       margin: EdgeInsets.only(
         left: gapBefore ? _halfGap : 0,

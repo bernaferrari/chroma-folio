@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,17 +27,25 @@ class const GamutSolidScreen({super.key}) extends StatefulWidget {
 enum _Grab { undecided, turn, lift, pick }
 
 class _GamutSolidScreenState extends State<GamutSolidScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const double _decideAfter = 6;
   static const double _spinFriction = 0.03;
   static const double _pickSlack = 1.08;
   static const double _levelReelWidth = 60;
 
   late final AnimationController _spin;
+  late final AnimationController _morph;
+  late final Animation<double> _progress;
+  late final Listenable _repaint;
+  final _zoom = ValueNotifier(1.0);
+  late _SolidFrame _targetFrame;
+  _SolidFrame? _fromFrame;
+  late ColorSpaceMode _space;
+  late int _shuffleRevision;
   _Grab _grab = _Grab.undecided;
   Offset _travel = Offset.zero;
   Size _size = Size.zero;
-  _Slice? _slice;
+  final Map<ColorSpaceMode, _Slice> _slices = {};
 
   StudioCubit get _cubit => context.read<StudioCubit>();
 
@@ -45,19 +54,99 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     super.initState();
     final state = _cubit.state;
     final hue = state.activeColor.channelsFor(state.activeSpace)[0].value;
+    _space = state.activeSpace;
+    _shuffleRevision = state.shuffleRevision;
+    _targetFrame = _frameFor(state);
     _spin = AnimationController.unbounded(
       vsync: this,
       value: _Camera.yawFacing(hue),
     );
+    _morph = AnimationController(vsync: this, value: 1);
+    _progress = _morph.drive(CurveTween(curve: Curves.easeInOutCubic));
+    _repaint = Listenable.merge([_spin, _morph, _zoom]);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) _finishMorph();
   }
 
   @override
   void dispose() {
     _spin.dispose();
+    _morph.dispose();
+    _zoom.dispose();
     super.dispose();
   }
 
-  _Camera get _camera => _Camera(yaw: _spin.value, size: _size);
+  _Camera get _camera =>
+      _Camera(yaw: _spin.value, size: _size, zoom: _zoom.value);
+
+  _SolidFrame _frameFor(StudioState state) {
+    final space = state.activeSpace;
+    final channels = state.activeColor.channelsFor(space);
+    final hue = channels[0].value;
+    final lightness = channels[2].value;
+    final cached = _slices[space];
+    final slice = cached != null && cached.matches(space, lightness)
+        ? cached
+        : _slices[space] = _Slice(space, lightness);
+    return _SolidFrame(
+      mesh: _SolidMesh.of(space).samples,
+      slice: slice.samples,
+      lightness: lightness,
+      markerHue: hue,
+      markerReach:
+          chromaReach(space, hue: hue, lightnessPct: lightness) *
+          channels[1].value /
+          100,
+      markerColor: state.activeColor.color,
+    );
+  }
+
+  static bool _frameChanged(StudioState previous, StudioState next) =>
+      previous.activeColor != next.activeColor ||
+      previous.activeSpace != next.activeSpace ||
+      previous.shuffleRevision != next.shuffleRevision;
+
+  void _updateFrame(StudioState state) {
+    final switchedSpace = _space != state.activeSpace;
+    final shuffled = _shuffleRevision != state.shuffleRevision;
+    _space = state.activeSpace;
+    _shuffleRevision = state.shuffleRevision;
+
+    final from = _fromFrame;
+    final previousTarget = _targetFrame;
+    _targetFrame = _frameFor(state);
+    if (MediaQuery.disableAnimationsOf(context) ||
+        !(switchedSpace || shuffled)) {
+      _finishMorph();
+      return;
+    }
+
+    // Retarget from the visible shape when the user switches mid-transition.
+    _fromFrame = from?.lerp(previousTarget, _progress.value) ?? previousTarget;
+    _morph
+      ..duration = Duration(milliseconds: switchedSpace ? 300 : 220)
+      ..forward(from: 0);
+  }
+
+  void _finishMorph() {
+    if (_fromFrame == null) return;
+    _fromFrame = null;
+    _morph.value = 1;
+  }
+
+  void _handleScroll(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+      _zoom.value = (_zoom.value * math.exp(-event.scrollDelta.dy / 420)).clamp(
+        0.65,
+        2.6,
+      );
+    });
+  }
 
   /// The colour on the cut face under [position], if there is one.
   StudioColor? _colorOnSlice(Offset position) {
@@ -83,6 +172,7 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   }
 
   void _handlePanStart(DragStartDetails details) {
+    _finishMorph();
     _spin.stop();
     _travel = Offset.zero;
     if (_colorOnSlice(details.localPosition) == null) {
@@ -135,12 +225,18 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
         );
       case _Grab.lift:
       case _Grab.pick:
-        _cubit.endScrub();
+        break;
     }
+    _endGrab();
+  }
+
+  void _endGrab() {
+    if (_grab == _Grab.lift || _grab == _Grab.pick) _cubit.endScrub();
     _grab = _Grab.undecided;
   }
 
   void _handleTapUp(TapUpDetails details) {
+    _finishMorph();
     final color = _colorOnSlice(details.localPosition);
     if (color != null) _cubit.setActiveColor(color);
   }
@@ -148,47 +244,44 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return BlocBuilder<StudioCubit, StudioState>(
-      buildWhen: (prev, next) =>
-          prev.activeColor != next.activeColor ||
-          prev.activeSpace != next.activeSpace,
+    return BlocConsumer<StudioCubit, StudioState>(
+      buildWhen: _frameChanged,
+      listenWhen: _frameChanged,
+      listener: (_, state) => _updateFrame(state),
       builder: (context, state) {
         final space = state.activeSpace;
         final channels = state.activeColor.channelsFor(space);
-        final hue = channels[0].value;
         final lightness = channels[2].value;
-        final cached = _slice;
-        final slice = cached != null && cached.matches(space, lightness)
-            ? cached
-            : _slice = _Slice(space, lightness);
 
         final solid = LayoutBuilder(
           builder: (context, constraints) {
             _size = constraints.biggest;
-            return MouseRegion(
-              cursor: SystemMouseCursors.grab,
-              child: GestureDetector(
-                key: const ValueKey<String>('gamut_solid_canvas'),
-                behavior: HitTestBehavior.opaque,
-                dragStartBehavior: DragStartBehavior.down,
-                onPanStart: _handlePanStart,
-                onPanUpdate: _handlePanUpdate,
-                onPanEnd: _handlePanEnd,
-                onPanCancel: () => _grab = _Grab.undecided,
-                onTapUp: _handleTapUp,
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: _SolidPainter(
-                    spin: _spin,
-                    mesh: _SolidMesh.of(space),
-                    slice: slice,
-                    markerHue: hue,
-                    markerReach:
-                        chromaReach(space, hue: hue, lightnessPct: lightness) *
-                        channels[1].value /
-                        100,
-                    markerColor: state.activeColor.color,
-                    cageColor: scheme.onSurface,
+            return ClipRect(
+              child: Listener(
+                onPointerSignal: _handleScroll,
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.grab,
+                  child: GestureDetector(
+                    key: const ValueKey<String>('gamut_solid_canvas'),
+                    behavior: HitTestBehavior.opaque,
+                    dragStartBehavior: DragStartBehavior.down,
+                    onPanStart: _handlePanStart,
+                    onPanUpdate: _handlePanUpdate,
+                    onPanEnd: _handlePanEnd,
+                    onPanCancel: _endGrab,
+                    onTapUp: _handleTapUp,
+                    child: CustomPaint(
+                      size: Size.infinite,
+                      painter: _SolidPainter(
+                        repaint: _repaint,
+                        spin: _spin,
+                        zoom: _zoom,
+                        progress: _progress,
+                        from: _fromFrame,
+                        target: _targetFrame,
+                        cageColor: scheme.onSurface,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -230,7 +323,12 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: solid),
+                  Expanded(
+                    child: RepaintBoundary(
+                      key: const ValueKey('gamut_solid_viewport'),
+                      child: solid,
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   SizedBox(
                     width: _levelReelWidth,
@@ -289,7 +387,11 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
 }
 
 /// Looks at the solid from slightly above, turned by [yaw] around its axis.
-class _Camera({required final double yaw, required Size size}) {
+class _Camera({
+  required final double yaw,
+  required Size size,
+  required double zoom,
+}) {
   /// Distance from the axis to the widest point of a solid.
   static const double radius = 0.55;
   static const double _pitch = 0.5;
@@ -297,10 +399,8 @@ class _Camera({required final double yaw, required Size size}) {
   static final double _cosPitch = math.cos(_pitch);
 
   final Offset centre = size.center(Offset.zero);
-  final double scale = math.max(
-    1,
-    math.min(size.width / 1.3, size.height / 1.65),
-  );
+  final double scale =
+      math.max(1, math.min(size.width / 1.3, size.height / 1.65)) * zoom;
 
   /// The yaw that brings [hue] to the front.
   static double yawFacing(double hue) => hue * math.pi / 180 - math.pi / 2;
@@ -347,8 +447,59 @@ class _Camera({required final double yaw, required Size size}) {
   double liftFor(double pixels) => -pixels / (scale * _cosPitch) * 100;
 }
 
-/// The outside of a solid: how far each hue reaches at each lightness, and
-/// the most saturated colour found there.
+/// Radial coordinates and opaque vertex colors sampled on a common grid.
+class const _GamutSamples(final Float32List reach, final Int32List colors) {
+  _GamutSamples lerp(_GamutSamples target, double t) {
+    if (identical(this, target)) return this;
+
+    final radii = Float32List(reach.length);
+    final blended = Int32List(colors.length);
+    for (var i = 0; i < radii.length; i++) {
+      radii[i] = reach[i] + (target.reach[i] - reach[i]) * t;
+    }
+    for (var i = 0; i < blended.length; i++) {
+      blended[i] = _mixOpaque(colors[i], target.colors[i], t);
+    }
+    return _GamutSamples(radii, blended);
+  }
+
+  static int _mixOpaque(int from, int to, double t) {
+    if (from == to) return from;
+    int channel(int shift) {
+      final a = (from >> shift) & 0xff;
+      final b = (to >> shift) & 0xff;
+      return (a + (b - a) * t).round() << shift;
+    }
+
+    return 0xff000000 | channel(16) | channel(8) | channel(0);
+  }
+}
+
+class const _SolidFrame({
+  required final _GamutSamples mesh,
+  required final _GamutSamples slice,
+  required final double lightness,
+  required final double markerHue,
+  required final double markerReach,
+  required final Color markerColor,
+}) {
+  _SolidFrame lerp(_SolidFrame target, double t) {
+    if (t <= 0) return this;
+    if (t >= 1) return target;
+    final hueDelta = (target.markerHue - markerHue + 540) % 360 - 180;
+
+    return _SolidFrame(
+      mesh: mesh.lerp(target.mesh, t),
+      slice: slice.lerp(target.slice, t),
+      lightness: lightness + (target.lightness - lightness) * t,
+      markerHue: (markerHue + hueDelta * t) % 360,
+      markerReach: markerReach + (target.markerReach - markerReach) * t,
+      markerColor: Color.lerp(markerColor, target.markerColor, t)!,
+    );
+  }
+}
+
+/// The outer gamut sampled on a common hue and lightness grid.
 class _SolidMesh._(ColorSpaceMode space) {
   factory of(ColorSpaceMode space) =>
       _cache.putIfAbsent(space, () => _SolidMesh._(space));
@@ -357,10 +508,14 @@ class _SolidMesh._(ColorSpaceMode space) {
   static const int rows = 40;
   static final Map<ColorSpaceMode, _SolidMesh> _cache = {};
 
-  final Float32List reach = Float32List((rows + 1) * columns);
-  final Int32List colors = Int32List((rows + 1) * columns);
+  final samples = _GamutSamples(
+    Float32List((rows + 1) * columns),
+    Int32List((rows + 1) * columns),
+  );
 
   this {
+    final reach = samples.reach;
+    final colors = samples.colors;
     for (var row = 0; row <= rows; row++) {
       for (var column = 0; column < columns; column++) {
         final hue = hueOf(column);
@@ -386,10 +541,14 @@ class _SolidMesh._(ColorSpaceMode space) {
 class _Slice(final ColorSpaceMode space, final double lightness) {
   static const int rings = 6;
 
-  final Float32List reach = Float32List(_SolidMesh.columns);
-  final Int32List colors = Int32List((rings + 1) * _SolidMesh.columns);
+  final samples = _GamutSamples(
+    Float32List(_SolidMesh.columns),
+    Int32List((rings + 1) * _SolidMesh.columns),
+  );
 
   this {
+    final reach = samples.reach;
+    final colors = samples.colors;
     for (var column = 0; column < _SolidMesh.columns; column++) {
       final hue = _SolidMesh.hueOf(column);
       reach[column] = chromaReach(space, hue: hue, lightnessPct: lightness);
@@ -409,12 +568,12 @@ class _Slice(final ColorSpaceMode space, final double lightness) {
 }
 
 class _SolidPainter({
+  required Listenable repaint,
   required final Animation<double> spin,
-  required final _SolidMesh mesh,
-  required final _Slice slice,
-  required final double markerHue,
-  required final double markerReach,
-  required final Color markerColor,
+  required final ValueListenable<double> zoom,
+  required final Animation<double> progress,
+  required final _SolidFrame? from,
+  required final _SolidFrame target,
   required final Color cageColor,
 }) extends CustomPainter {
   static const int _columns = _SolidMesh.columns;
@@ -422,32 +581,40 @@ class _SolidPainter({
   static const int _cageRibEvery = 6;
   static const double _markerRadius = 13;
 
-  this : super(repaint: spin);
+  this : super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final camera = _Camera(yaw: spin.value, size: size);
+    final camera = _Camera(yaw: spin.value, size: size, zoom: zoom.value);
+    final frame = from?.lerp(target, progress.value) ?? target;
     // Rows of the mesh that sit below the cut.
-    final rowsBelow = (slice.lightness / (100 / _SolidMesh.rows)).ceil();
+    final rowsBelow = (frame.lightness / (100 / _SolidMesh.rows)).ceil();
 
-    _paintBelow(canvas, camera, rowsBelow);
-    _paintSlice(canvas, camera);
-    _paintCage(canvas, camera, rowsBelow);
-    _paintMarker(canvas, camera);
+    _paintBelow(canvas, camera, frame, rowsBelow);
+    _paintSlice(canvas, camera, frame);
+    _paintCage(canvas, camera, frame, rowsBelow);
+    _paintMarker(canvas, camera, frame);
   }
 
   /// The solid from black up to the cut, far faces first.
-  void _paintBelow(Canvas canvas, _Camera camera, int rowsBelow) {
+  void _paintBelow(
+    Canvas canvas,
+    _Camera camera,
+    _SolidFrame frame,
+    int rowsBelow,
+  ) {
     if (rowsBelow == 0) return;
     final ringCount = rowsBelow + 1;
     final positions = Float32List(ringCount * _columns * 2);
     final colors = Int32List(ringCount * _columns);
     final nearness = Float32List(ringCount * _columns);
     const topColors = _Slice.rings * _columns;
+    final mesh = frame.mesh;
+    final slice = frame.slice;
 
     for (var ring = 0; ring < ringCount; ring++) {
       final isCut = ring == rowsBelow;
-      final lightness = isCut ? slice.lightness : _SolidMesh.lightnessOf(ring);
+      final lightness = isCut ? frame.lightness : _SolidMesh.lightnessOf(ring);
       for (var column = 0; column < _columns; column++) {
         final at = ring * _columns + column;
         final (x, y, near) = camera.project(
@@ -511,8 +678,9 @@ class _SolidPainter({
   }
 
   /// The cut face, grey at the axis and most saturated at the edge.
-  void _paintSlice(Canvas canvas, _Camera camera) {
+  void _paintSlice(Canvas canvas, _Camera camera, _SolidFrame frame) {
     const rings = _Slice.rings;
+    final slice = frame.slice;
     final positions = Float32List((rings + 1) * _columns * 2);
     final edge = Path();
 
@@ -522,7 +690,7 @@ class _SolidPainter({
         final (x, y, _) = camera.project(
           _SolidMesh.hueOf(column),
           slice.reach[column] * _Camera.radius * ring / rings,
-          slice.lightness,
+          frame.lightness,
         );
         positions[at * 2] = x;
         positions[at * 2 + 1] = y;
@@ -576,8 +744,19 @@ class _SolidPainter({
   }
 
   /// The part of the solid above the cut, as an open cage.
-  void _paintCage(Canvas canvas, _Camera camera, int rowsBelow) {
+  void _paintCage(
+    Canvas canvas,
+    _Camera camera,
+    _SolidFrame frame,
+    int rowsBelow,
+  ) {
     final cage = Path();
+    final mesh = frame.mesh;
+    final slice = frame.slice;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..strokeJoin = StrokeJoin.round;
     Offset corner(int row, int column) {
       final (x, y, _) = camera.project(
         _SolidMesh.hueOf(column),
@@ -590,41 +769,43 @@ class _SolidPainter({
     for (var row = rowsBelow; row <= _SolidMesh.rows; row++) {
       final isTop = row == _SolidMesh.rows;
       if (row % _cageRingEvery != 0 && !isTop) continue;
-      if (_SolidMesh.lightnessOf(row) <= slice.lightness) continue;
-      cage.addPolygon([
+      final aboveCut = _SolidMesh.lightnessOf(row) - frame.lightness;
+      if (aboveCut <= 0) continue;
+      final ring = [
         for (var column = 0; column < _columns; column++) corner(row, column),
-      ], true);
+      ];
+      if (aboveCut < 4) {
+        canvas.drawPath(
+          Path()..addPolygon(ring, true),
+          paint..color = cageColor.withValues(alpha: 0.14 * aboveCut / 4),
+        );
+      } else {
+        cage.addPolygon(ring, true);
+      }
     }
     for (var column = 0; column < _columns; column += _cageRibEvery) {
       final (x, y, _) = camera.project(
         _SolidMesh.hueOf(column),
         slice.reach[column] * _Camera.radius,
-        slice.lightness,
+        frame.lightness,
       );
       cage.addPolygon([
         Offset(x, y),
         for (var row = rowsBelow; row <= _SolidMesh.rows; row++)
-          if (_SolidMesh.lightnessOf(row) > slice.lightness)
+          if (_SolidMesh.lightnessOf(row) > frame.lightness)
             corner(row, column),
       ], false);
     }
 
-    canvas.drawPath(
-      cage,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..strokeJoin = StrokeJoin.round
-        ..color = cageColor.withValues(alpha: 0.14),
-    );
+    canvas.drawPath(cage, paint..color = cageColor.withValues(alpha: 0.14));
   }
 
   /// The picked colour, sitting on the cut face.
-  void _paintMarker(Canvas canvas, _Camera camera) {
+  void _paintMarker(Canvas canvas, _Camera camera, _SolidFrame frame) {
     final (x, y, _) = camera.project(
-      markerHue,
-      markerReach * _Camera.radius,
-      slice.lightness,
+      frame.markerHue,
+      frame.markerReach * _Camera.radius,
+      frame.lightness,
     );
     final centre = Offset(x, y);
     canvas.drawCircle(
@@ -635,16 +816,17 @@ class _SolidPainter({
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
     );
     canvas.drawCircle(centre, _markerRadius, Paint()..color = Colors.white);
-    canvas.drawCircle(centre, _markerRadius - 3, Paint()..color = markerColor);
+    canvas.drawCircle(
+      centre,
+      _markerRadius - 3,
+      Paint()..color = frame.markerColor,
+    );
   }
 
   @override
   bool shouldRepaint(covariant _SolidPainter oldDelegate) {
-    return oldDelegate.slice != slice ||
-        oldDelegate.mesh != mesh ||
-        oldDelegate.markerHue != markerHue ||
-        oldDelegate.markerReach != markerReach ||
-        oldDelegate.markerColor != markerColor ||
+    return oldDelegate.target != target ||
+        oldDelegate.from != from ||
         oldDelegate.cageColor != cageColor;
   }
 }
