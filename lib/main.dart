@@ -11,11 +11,8 @@ void main() {
 
 /// Root Material 3 Perceptual Color Studio application showcasing
 /// HSLuv alongside OKLCH and Material 3 HCT.
-class StudioApp extends StatelessWidget {
-  const StudioApp({super.key, this.cubit});
-
-  final StudioCubit? cubit;
-
+class const StudioApp({super.key, final StudioCubit? cubit})
+    extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const studioSeed = Color(0xFF6366F1);

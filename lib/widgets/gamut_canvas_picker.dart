@@ -18,35 +18,25 @@ enum _Gamut2DMode { polarSlice, hueLightnessMatrix }
 /// Interactive 2D perceptual gamut picker offering both a Polar Gamut slice
 /// (backed by [ColorPicker.getPickerGeometry] & [ColorPicker.closestPoint] in HSLuv)
 /// and a Hue × Lightness/Tone 2D matrix, plus a horizontal scrub strip for the 3rd axis.
-class GamutCanvasPicker extends StatefulWidget {
-  const GamutCanvasPicker({
-    super.key,
-    required this.space,
-    required this.activeColor,
-    required this.onScrubStart,
-    required this.onScrubChannel,
-    required this.onScrubHsluvHueSat,
-    required this.onScrubTwoChannels,
-    required this.onScrubEnd,
-    this.embeddedOnStage = false,
-    this.stageInk,
-  });
-
-  final ColorSpaceMode space;
-  final StudioColor activeColor;
-  final VoidCallback onScrubStart;
-  final void Function(int channelIndex, double value) onScrubChannel;
-  final void Function(double hue, double saturation) onScrubHsluvHueSat;
-  final void Function({
+class const GamutCanvasPicker({
+  super.key,
+  required final ColorSpaceMode space,
+  required final StudioColor activeColor,
+  required final VoidCallback onScrubStart,
+  required final void Function(int channelIndex, double value) onScrubChannel,
+  required final void Function(double hue, double saturation)
+  onScrubHsluvHueSat,
+  required final void Function({
     required int xChannel,
     required double xValue,
     required int yChannel,
     required double yValue,
-  }) onScrubTwoChannels;
-  final VoidCallback onScrubEnd;
-  final bool embeddedOnStage;
-  final Color? stageInk;
-
+  })
+  onScrubTwoChannels,
+  required final VoidCallback onScrubEnd,
+  final bool embeddedOnStage = false,
+  final Color? stageInk,
+}) extends StatefulWidget {
   @override
   State<GamutCanvasPicker> createState() => _GamutCanvasPickerState();
 }
@@ -65,12 +55,13 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
   @override
   void initState() {
     super.initState();
-    _flingController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 550),
-    )
-      ..addListener(_onFlingTick)
-      ..addStatusListener(_onFlingStatus);
+    _flingController =
+        AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 550),
+          )
+          ..addListener(_onFlingTick)
+          ..addStatusListener(_onFlingStatus);
   }
 
   @override
@@ -148,8 +139,9 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
       final rawC = (dist / radius) * scaleMaxC;
       final maxC = OklchColor.maxChromaForLH(lightness.clamp(1.0, 99.0), hue);
       final clampedC = rawC.clamp(0.0, maxC);
-      final satPct =
-          maxC > 0 ? (clampedC / maxC * 100.0).clamp(0.0, 100.0) : 0.0;
+      final satPct = maxC > 0
+          ? (clampedC / maxC * 100.0).clamp(0.0, 100.0)
+          : 0.0;
       if (haptic) HapticFeedback.selectionClick();
       widget.onScrubTwoChannels(
         xChannel: 0,
@@ -195,12 +187,7 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
     final hue = (localPos.dx / size.width).clamp(0.0, 1.0) * 360.0;
     final l = (1.0 - (localPos.dy / size.height).clamp(0.0, 1.0)) * 100.0;
     if (haptic) HapticFeedback.selectionClick();
-    widget.onScrubTwoChannels(
-      xChannel: 0,
-      xValue: hue,
-      yChannel: 2,
-      yValue: l,
-    );
+    widget.onScrubTwoChannels(xChannel: 0, xValue: hue, yChannel: 2, yValue: l);
   }
 
   void _handlePanEnd(DragEndDetails details) {
@@ -348,8 +335,9 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
     final lightness = channels[2].value;
 
     return MouseRegion(
-      cursor:
-          _isDragging ? SystemMouseCursors.grabbing : SystemMouseCursors.grab,
+      cursor: _isDragging
+          ? SystemMouseCursors.grabbing
+          : SystemMouseCursors.grab,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanStart: (d) {
@@ -387,7 +375,8 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
             lightness: lightness,
             isDragging: _isDragging,
             outlineColor:
-                widget.stageInk ?? Theme.of(context).colorScheme.onSurfaceVariant,
+                widget.stageInk ??
+                Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -404,8 +393,9 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: MouseRegion(
-        cursor:
-            _isDragging ? SystemMouseCursors.grabbing : SystemMouseCursors.grab,
+        cursor: _isDragging
+            ? SystemMouseCursors.grabbing
+            : SystemMouseCursors.grab,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onPanStart: (d) {
@@ -452,21 +442,13 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
   }
 }
 
-class _PolarGamutPainter extends CustomPainter {
-  const _PolarGamutPainter({
-    required this.space,
-    required this.activeColor,
-    required this.lightness,
-    required this.isDragging,
-    required this.outlineColor,
-  });
-
-  final ColorSpaceMode space;
-  final StudioColor activeColor;
-  final double lightness;
-  final bool isDragging;
-  final Color outlineColor;
-
+class const _PolarGamutPainter({
+  required final ColorSpaceMode space,
+  required final StudioColor activeColor,
+  required final double lightness,
+  required final bool isDragging,
+  required final Color outlineColor,
+}) extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final radius = math.min(size.width, size.height) * 0.40;
@@ -494,10 +476,26 @@ class _PolarGamutPainter extends CustomPainter {
     );
 
     // Delicate 0° / 90° / 180° / 270° compass markers
-    _drawCompassLabel(canvas, '0°', Offset(center.dx + radius + 5, center.dy - 6));
-    _drawCompassLabel(canvas, '90°', Offset(center.dx - 8, center.dy - radius - 14));
-    _drawCompassLabel(canvas, '180°', Offset(center.dx - radius - 26, center.dy - 6));
-    _drawCompassLabel(canvas, '270°', Offset(center.dx - 11, center.dy + radius + 3));
+    _drawCompassLabel(
+      canvas,
+      '0°',
+      Offset(center.dx + radius + 5, center.dy - 6),
+    );
+    _drawCompassLabel(
+      canvas,
+      '90°',
+      Offset(center.dx - 8, center.dy - radius - 14),
+    );
+    _drawCompassLabel(
+      canvas,
+      '180°',
+      Offset(center.dx - radius - 26, center.dy - 6),
+    );
+    _drawCompassLabel(
+      canvas,
+      '270°',
+      Offset(center.dx - 11, center.dy + radius + 3),
+    );
 
     final effectiveL = lightness.clamp(1.0, 99.0);
     final geometry = space == ColorSpaceMode.hsluv
@@ -620,10 +618,7 @@ class _PolarGamutPainter extends CustomPainter {
       final sinR = math.sin(rad);
       return List<Offset>.generate(radialRings, (ring) {
         final f = (ring + 1) / radialRings;
-        return Offset(
-          center.dx + cosR * rMax * f,
-          center.dy - sinR * rMax * f,
-        );
+        return Offset(center.dx + cosR * rMax * f, center.dy - sinR * rMax * f);
       });
     });
 
@@ -638,16 +633,8 @@ class _PolarGamutPainter extends CustomPainter {
     for (int i = 0; i < angularSteps; i++) {
       final next = (i + 1) % angularSteps;
       // Inner triangle fan
-      positions.addAll([
-        center,
-        ringOffsets[i][0],
-        ringOffsets[next][0],
-      ]);
-      colors.addAll([
-        centerColor,
-        ringColors[i][0],
-        ringColors[next][0],
-      ]);
+      positions.addAll([center, ringOffsets[i][0], ringOffsets[next][0]]);
+      colors.addAll([centerColor, ringColors[i][0], ringColors[next][0]]);
 
       // Concentric quads
       for (int r = 0; r < radialRings - 1; r++) {
@@ -685,7 +672,8 @@ class _PolarGamutPainter extends CustomPainter {
     // Inner HPLuv pastel circle in HSLuv mode
     if (space == ColorSpaceMode.hsluv && geometry != null) {
       final innerRatio =
-          (geometry.innerCircleRadius ?? 0) / math.max(geometry.outerCircleRadius ?? 0, 1.0);
+          (geometry.innerCircleRadius ?? 0) /
+          math.max(geometry.outerCircleRadius ?? 0, 1.0);
       canvas.drawCircle(
         center,
         radius * innerRatio,
@@ -801,23 +789,14 @@ class _PolarGamutPainter extends CustomPainter {
   }
 }
 
-class _HueLightnessMatrixPainter extends CustomPainter {
-  const _HueLightnessMatrixPainter({
-    required this.space,
-    required this.activeColor,
-    required this.fixedSatOrChroma,
-    required this.currentHue,
-    required this.currentLightness,
-    required this.isDragging,
-  });
-
-  final ColorSpaceMode space;
-  final StudioColor activeColor;
-  final double fixedSatOrChroma;
-  final double currentHue;
-  final double currentLightness;
-  final bool isDragging;
-
+class const _HueLightnessMatrixPainter({
+  required final ColorSpaceMode space,
+  required final StudioColor activeColor,
+  required final double fixedSatOrChroma,
+  required final double currentHue,
+  required final double currentLightness,
+  required final bool isDragging,
+}) extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const cols = 36;
@@ -871,8 +850,16 @@ class _HueLightnessMatrixPainter extends CustomPainter {
     final guidePaint = Paint()
       ..color = ink.withValues(alpha: 0.35)
       ..strokeWidth = 1;
-    canvas.drawLine(Offset(thumb.dx, 0), Offset(thumb.dx, size.height), guidePaint);
-    canvas.drawLine(Offset(0, thumb.dy), Offset(size.width, thumb.dy), guidePaint);
+    canvas.drawLine(
+      Offset(thumb.dx, 0),
+      Offset(thumb.dx, size.height),
+      guidePaint,
+    );
+    canvas.drawLine(
+      Offset(0, thumb.dy),
+      Offset(size.width, thumb.dy),
+      guidePaint,
+    );
 
     canvas.drawCircle(
       thumb,
@@ -929,23 +916,14 @@ class _HueLightnessMatrixPainter extends CustomPainter {
   }
 }
 
-class _HorizontalChannelScrubber extends StatelessWidget {
-  const _HorizontalChannelScrubber({
-    required this.descriptor,
-    required this.space,
-    required this.activeColor,
-    required this.onScrubStart,
-    required this.onScrubUpdate,
-    required this.onScrubEnd,
-  });
-
-  final ChannelDescriptor descriptor;
-  final ColorSpaceMode space;
-  final StudioColor activeColor;
-  final VoidCallback onScrubStart;
-  final ValueChanged<double> onScrubUpdate;
-  final VoidCallback onScrubEnd;
-
+class const _HorizontalChannelScrubber({
+  required final ChannelDescriptor descriptor,
+  required final ColorSpaceMode space,
+  required final StudioColor activeColor,
+  required final VoidCallback onScrubStart,
+  required final ValueChanged<double> onScrubUpdate,
+  required final VoidCallback onScrubEnd,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -969,9 +947,8 @@ class _HorizontalChannelScrubber extends StatelessWidget {
           children: [
             Text(
               descriptor.name,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             Text(
               descriptor.secondaryLabel != null
@@ -992,8 +969,10 @@ class _HorizontalChannelScrubber extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final w = constraints.maxWidth;
-              final thumbX =
-                  (descriptor.normalized * (w - 18)).clamp(0.0, w - 18);
+              final thumbX = (descriptor.normalized * (w - 18)).clamp(
+                0.0,
+                w - 18,
+              );
 
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,

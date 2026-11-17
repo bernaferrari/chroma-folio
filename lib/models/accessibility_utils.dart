@@ -42,7 +42,8 @@ Color contrastingTextColor(Color bg) {
 double apcaContrast(Color text, Color background) {
   double linearize(double c) => math.pow(c.clamp(0.0, 1.0), 2.4).toDouble();
   double yFor(Color c) {
-    final y = 0.2126729 * linearize(c.r) +
+    final y =
+        0.2126729 * linearize(c.r) +
         0.7151522 * linearize(c.g) +
         0.0721750 * linearize(c.b);
     const blkThrs = 0.022;
@@ -64,13 +65,11 @@ double apcaContrast(Color text, Color background) {
   const loConOffset = 0.027;
 
   if (yBg > yTxt) {
-    final sapc =
-        (math.pow(yBg, normBg) - math.pow(yTxt, normTxt)) * scaleBoW;
+    final sapc = (math.pow(yBg, normBg) - math.pow(yTxt, normTxt)) * scaleBoW;
     if (sapc < loClip) return 0.0;
     return (sapc - loConOffset) * 100.0;
   } else {
-    final sapc =
-        (math.pow(yBg, revBg) - math.pow(yTxt, revTxt)) * scaleWoB;
+    final sapc = (math.pow(yBg, revBg) - math.pow(yTxt, revTxt)) * scaleWoB;
     if (sapc > -loClip) return 0.0;
     return (sapc + loConOffset) * 100.0;
   }
@@ -87,10 +86,7 @@ HSLuvColor? solveHsluvForContrast(
 
   // Use Contrast helper bounds as starting hints, then refine against true sRGB color.
   HSLuvColor? searchDarker() {
-    if (wcagContrastRatio(
-          source.withLightness(0).toColor(),
-          background,
-        ) <
+    if (wcagContrastRatio(source.withLightness(0).toColor(), background) <
         targetRatio) {
       return null;
     }
@@ -120,17 +116,17 @@ HSLuvColor? solveHsluvForContrast(
   }
 
   HSLuvColor? searchLighter() {
-    if (wcagContrastRatio(
-          source.withLightness(100).toColor(),
-          background,
-        ) <
+    if (wcagContrastRatio(source.withLightness(100).toColor(), background) <
         targetRatio) {
       return null;
     }
     if (wcagContrastRatio(source.toColor(), background) >= targetRatio) {
       return source;
     }
-    var low = math.max(bgLuv.lightness, Contrast.lighterMinL(targetRatio) * 0.0);
+    var low = math.max(
+      bgLuv.lightness,
+      Contrast.lighterMinL(targetRatio) * 0.0,
+    );
     low = bgLuv.lightness;
     var high = 100.0;
     for (int i = 0; i < 24; i++) {
@@ -157,7 +153,7 @@ HSLuvColor? solveHsluvForContrast(
 }
 
 /// Color Vision Deficiency simulation types.
-enum CvdType {
+enum CvdType(final String label, final String description) {
   normal('Normal Vision', '100% full trichromatic spectrum'),
   protanopia('Protanopia', 'Red-blind (missing L-cones · ~1% males)'),
   deuteranopia('Deuteranopia', 'Green-blind (missing M-cones · ~1% males)'),
@@ -166,11 +162,6 @@ enum CvdType {
   deuteranomaly('Deuteranomaly', 'Green-weak (anomalous M-cones · ~6% males)'),
   tritanomaly('Tritanomaly', 'Blue-weak (anomalous S-cones · ~0.01%)'),
   achromatopsia('Achromatopsia', 'Total monochromacy (~0.003%)');
-
-  const CvdType(this.label, this.description);
-
-  final String label;
-  final String description;
 
   Color simulate(Color color) {
     final r = (color.r * 255.0).round().clamp(0, 255);
@@ -188,40 +179,82 @@ enum CvdType {
     final rgb = switch (this) {
       CvdType.normal => [r, g, b],
       CvdType.protanopia => applyMatrix(const [
-          0.567, 0.433, 0.0,
-          0.558, 0.442, 0.0,
-          0.0, 0.242, 0.758,
-        ]),
+        0.567,
+        0.433,
+        0.0,
+        0.558,
+        0.442,
+        0.0,
+        0.0,
+        0.242,
+        0.758,
+      ]),
       CvdType.deuteranopia => applyMatrix(const [
-          0.625, 0.375, 0.0,
-          0.7, 0.3, 0.0,
-          0.0, 0.3, 0.7,
-        ]),
+        0.625,
+        0.375,
+        0.0,
+        0.7,
+        0.3,
+        0.0,
+        0.0,
+        0.3,
+        0.7,
+      ]),
       CvdType.tritanopia => applyMatrix(const [
-          0.95, 0.05, 0.0,
-          0.0, 0.433, 0.567,
-          0.0, 0.475, 0.525,
-        ]),
+        0.95,
+        0.05,
+        0.0,
+        0.0,
+        0.433,
+        0.567,
+        0.0,
+        0.475,
+        0.525,
+      ]),
       CvdType.protanomaly => applyMatrix(const [
-          0.817, 0.183, 0.0,
-          0.333, 0.667, 0.0,
-          0.0, 0.125, 0.875,
-        ]),
+        0.817,
+        0.183,
+        0.0,
+        0.333,
+        0.667,
+        0.0,
+        0.0,
+        0.125,
+        0.875,
+      ]),
       CvdType.deuteranomaly => applyMatrix(const [
-          0.8, 0.2, 0.0,
-          0.258, 0.742, 0.0,
-          0.0, 0.142, 0.858,
-        ]),
+        0.8,
+        0.2,
+        0.0,
+        0.258,
+        0.742,
+        0.0,
+        0.0,
+        0.142,
+        0.858,
+      ]),
       CvdType.tritanomaly => applyMatrix(const [
-          0.967, 0.033, 0.0,
-          0.0, 0.733, 0.267,
-          0.0, 0.183, 0.817,
-        ]),
+        0.967,
+        0.033,
+        0.0,
+        0.0,
+        0.733,
+        0.267,
+        0.0,
+        0.183,
+        0.817,
+      ]),
       CvdType.achromatopsia => applyMatrix(const [
-          0.299, 0.587, 0.114,
-          0.299, 0.587, 0.114,
-          0.299, 0.587, 0.114,
-        ]),
+        0.299,
+        0.587,
+        0.114,
+        0.299,
+        0.587,
+        0.114,
+        0.299,
+        0.587,
+        0.114,
+      ]),
     };
 
     return Color.fromARGB(255, rgb[0], rgb[1], rgb[2]);
@@ -229,9 +262,7 @@ enum CvdType {
 }
 
 /// Cached lookup against `assets/colornames.json`.
-class ColorNameLookup {
-  ColorNameLookup._();
-
+class ColorNameLookup._() {
   static List<({String name, int r, int g, int b})>? _entries;
   static Future<void>? _loading;
 
@@ -280,7 +311,8 @@ class ColorNameLookup {
       final dg = cg - entry.g;
       final db = cb - entry.b;
       final rMean = (cr + entry.r) >> 1;
-      final dist = (((512 + rMean) * dr * dr) >> 8) +
+      final dist =
+          (((512 + rMean) * dr * dr) >> 8) +
           4 * dg * dg +
           (((767 - rMean) * db * db) >> 8);
       if (dist == 0) return entry.name;

@@ -11,9 +11,7 @@ import '../widgets/studio_theme.dart';
 
 /// What the picked colour can become: its tonal scale and four harmonies
 /// that can replace the palette, each ready to copy as code.
-class ScalesHarmoniesScreen extends StatelessWidget {
-  const ScalesHarmoniesScreen({super.key});
-
+class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<StudioCubit, StudioState>(
@@ -142,17 +140,11 @@ class ScalesHarmoniesScreen extends StatelessWidget {
   }
 }
 
-class _TonalRampRibbon extends StatelessWidget {
-  const _TonalRampRibbon({
-    required this.ramp,
-    required this.activeLightness,
-    required this.onSelectStep,
-  });
-
-  final List<({int token, Color color, double lightness})> ramp;
-  final double activeLightness;
-  final ValueChanged<Color> onSelectStep;
-
+class const _TonalRampRibbon({
+  required final List<({int token, Color color, double lightness})> ramp,
+  required final double activeLightness,
+  required final ValueChanged<Color> onSelectStep,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -190,19 +182,12 @@ class _TonalRampRibbon extends StatelessWidget {
   }
 }
 
-class _TonalBand extends StatelessWidget {
-  const _TonalBand({
-    required this.token,
-    required this.color,
-    required this.isClosest,
-    required this.onTap,
-  });
-
-  final int token;
-  final Color color;
-  final bool isClosest;
-  final VoidCallback onTap;
-
+class const _TonalBand({
+  required final int token,
+  required final Color color,
+  required final bool isClosest,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = contrastingTextColor(color);
@@ -250,19 +235,15 @@ class _TonalBand extends StatelessWidget {
   }
 }
 
-class _HarmonyChord {
-  const _HarmonyChord({required this.title, required this.colors});
+class const _HarmonyChord({
+  required final String title,
+  required final List<StudioColor> colors,
+});
 
-  final String title;
-  final List<StudioColor> colors;
-}
-
-class _HarmonyChordsGrid extends StatelessWidget {
-  const _HarmonyChordsGrid({required this.chords, required this.onPourChord});
-
-  final List<_HarmonyChord> chords;
-  final ValueChanged<_HarmonyChord> onPourChord;
-
+class const _HarmonyChordsGrid({
+  required final List<_HarmonyChord> chords,
+  required final ValueChanged<_HarmonyChord> onPourChord,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -311,12 +292,10 @@ class _HarmonyChordsGrid extends StatelessWidget {
   }
 }
 
-class _HarmonyChordCard extends StatefulWidget {
-  const _HarmonyChordCard({required this.chord, required this.onTap});
-
-  final _HarmonyChord chord;
-  final VoidCallback onTap;
-
+class const _HarmonyChordCard({
+  required final _HarmonyChord chord,
+  required final VoidCallback onTap,
+}) extends StatefulWidget {
   @override
   State<_HarmonyChordCard> createState() => _HarmonyChordCardState();
 }
@@ -419,12 +398,10 @@ class _HarmonyChordCardState extends State<_HarmonyChordCard> {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.trailing});
-
-  final String title;
-  final Widget trailing;
-
+class const _SectionHeader({
+  required final String title,
+  required final Widget trailing,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -450,11 +427,8 @@ class _SectionHeader extends StatelessWidget {
 }
 
 /// One quiet row offering the palette in each code format.
-class _CopyPaletteBar extends StatelessWidget {
-  const _CopyPaletteBar({required this.palette});
-
-  final List<StudioColor> palette;
-
+class const _CopyPaletteBar({required final List<StudioColor> palette})
+    extends StatelessWidget {
   String get _hexList => palette.map((c) => c.hex).join(', ');
 
   String _cssVariables({required bool displayP3}) {
@@ -543,12 +517,10 @@ class _CopyPaletteBar extends StatelessWidget {
   }
 }
 
-class _CopyChip extends StatefulWidget {
-  const _CopyChip({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
+class const _CopyChip({
+  required final String label,
+  required final VoidCallback onTap,
+}) extends StatefulWidget {
   @override
   State<_CopyChip> createState() => _CopyChipState();
 }

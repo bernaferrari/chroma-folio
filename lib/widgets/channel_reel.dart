@@ -7,30 +7,19 @@ import 'studio_theme.dart';
 
 /// One colour channel as a reel: drag or fling the strip of colours and the
 /// one that lands in the lens becomes the picked value.
-class ChannelReel extends StatefulWidget {
-  const ChannelReel({
-    super.key,
-    required this.descriptor,
-    required this.space,
-    required this.activeColor,
-    required this.onScrubStart,
-    required this.onScrubUpdate,
-    required this.onScrubEnd,
-    this.showReadout = true,
-    this.axis = Axis.vertical,
-  });
-
-  final ChannelDescriptor descriptor;
-  final ColorSpaceMode space;
-  final StudioColor activeColor;
-  final VoidCallback onScrubStart;
-  final ValueChanged<double> onScrubUpdate;
-  final VoidCallback onScrubEnd;
+class const ChannelReel({
+  super.key,
+  required final ChannelDescriptor descriptor,
+  required final ColorSpaceMode space,
+  required final StudioColor activeColor,
+  required final VoidCallback onScrubStart,
+  required final ValueChanged<double> onScrubUpdate,
+  required final VoidCallback onScrubEnd,
 
   /// Whether the channel name and value are shown above the reel.
-  final bool showReadout;
-  final Axis axis;
-
+  final bool showReadout = true,
+  final Axis axis = Axis.vertical,
+}) extends StatefulWidget {
   @override
   State<ChannelReel> createState() => _ChannelReelState();
 }
@@ -226,19 +215,13 @@ class _ChannelReelState extends State<ChannelReel>
 }
 
 /// Channel name with its live value set large, tappable to type a number.
-class _ChannelReadout extends StatelessWidget {
-  const _ChannelReadout({
-    required this.descriptor,
-    required this.highlighted,
-    required this.onTap,
-  });
-
-  final ChannelDescriptor descriptor;
+class const _ChannelReadout({
+  required final ChannelDescriptor descriptor,
 
   /// Whether the reel below has keyboard focus.
-  final bool highlighted;
-  final VoidCallback onTap;
-
+  required final bool highlighted,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -331,11 +314,8 @@ class _ChannelReadout extends StatelessWidget {
 }
 
 /// Asks for a channel value as a number.
-class _ExactValueDialog extends StatefulWidget {
-  const _ExactValueDialog({required this.descriptor});
-
-  final ChannelDescriptor descriptor;
-
+class const _ExactValueDialog({required final ChannelDescriptor descriptor})
+    extends StatefulWidget {
   @override
   State<_ExactValueDialog> createState() => _ExactValueDialogState();
 }

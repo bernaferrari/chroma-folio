@@ -11,9 +11,7 @@ enum _ExportFormat { css4, tailwind, flutter, designTokens }
 
 /// Combined WCAG 2.1 + APCA contrast analyzer, CVD simulator,
 /// multi-format code/token exporter, and specification links.
-class AccessibilityExportScreen extends StatefulWidget {
-  const AccessibilityExportScreen({super.key});
-
+class const AccessibilityExportScreen({super.key}) extends StatefulWidget {
   @override
   State<AccessibilityExportScreen> createState() =>
       _AccessibilityExportScreenState();
@@ -99,31 +97,18 @@ class _AccessibilityExportScreenState extends State<AccessibilityExportScreen> {
   }
 }
 
-class _ContrastInspectorCard extends StatelessWidget {
-  const _ContrastInspectorCard({
-    required this.activeColor,
-    required this.palette,
-    required this.refSlotIndex,
-    required this.invertPreview,
-    required this.fgColor,
-    required this.bgColor,
-    required this.refColor,
-    required this.onRefChanged,
-    required this.onToggleInvert,
-    required this.onFixContrast,
-  });
-
-  final StudioColor activeColor;
-  final List<StudioColor> palette;
-  final int refSlotIndex;
-  final bool invertPreview;
-  final Color fgColor;
-  final Color bgColor;
-  final Color refColor;
-  final ValueChanged<int> onRefChanged;
-  final VoidCallback onToggleInvert;
-  final ValueChanged<double> onFixContrast;
-
+class const _ContrastInspectorCard({
+  required final StudioColor activeColor,
+  required final List<StudioColor> palette,
+  required final int refSlotIndex,
+  required final bool invertPreview,
+  required final Color fgColor,
+  required final Color bgColor,
+  required final Color refColor,
+  required final ValueChanged<int> onRefChanged,
+  required final VoidCallback onToggleInvert,
+  required final ValueChanged<double> onFixContrast,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -172,7 +157,9 @@ class _ContrastInspectorCard extends StatelessWidget {
                 ),
                 ActionChip(
                   avatar: const Icon(Icons.swap_vert_rounded, size: 16),
-                  label: Text(invertPreview ? 'Fg / Bg Swapped' : 'Swap Fg / Bg'),
+                  label: Text(
+                    invertPreview ? 'Fg / Bg Swapped' : 'Swap Fg / Bg',
+                  ),
                   onPressed: onToggleInvert,
                 ),
               ],
@@ -293,22 +280,14 @@ class _ContrastInspectorCard extends StatelessWidget {
   }
 }
 
-class _ContrastScorePill extends StatelessWidget {
-  const _ContrastScorePill({
-    required this.label,
-    required this.value,
-    required this.pass,
-  });
-
-  final String label;
-  final String value;
-  final bool pass;
-
+class const _ContrastScorePill({
+  required final String label,
+  required final String value,
+  required final bool pass,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final badgeColor = pass
-        ? const Color(0xFF10B981)
-        : const Color(0xFFEF4444);
+    final badgeColor = pass ? const Color(0xFF10B981) : const Color(0xFFEF4444);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -341,19 +320,12 @@ class _ContrastScorePill extends StatelessWidget {
   }
 }
 
-class _CvdSimulatorCard extends StatelessWidget {
-  const _CvdSimulatorCard({
-    required this.palette,
-    required this.activeColor,
-    required this.selectedCvd,
-    required this.onCvdChanged,
-  });
-
-  final List<StudioColor> palette;
-  final Color activeColor;
-  final CvdType selectedCvd;
-  final ValueChanged<CvdType> onCvdChanged;
-
+class const _CvdSimulatorCard({
+  required final List<StudioColor> palette,
+  required final Color activeColor,
+  required final CvdType selectedCvd,
+  required final ValueChanged<CvdType> onCvdChanged,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -373,7 +345,9 @@ class _CvdSimulatorCard extends StatelessWidget {
           children: [
             Text(
               'Color Vision Deficiency (CVD) Simulator',
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
             Text(
               'Verify your entire 8-color palette remains distinguishable across color vision profiles',
@@ -424,15 +398,10 @@ class _CvdSimulatorCard extends StatelessWidget {
   }
 }
 
-class _PaletteComparisonStrip extends StatelessWidget {
-  const _PaletteComparisonStrip({
-    required this.title,
-    required this.colors,
-  });
-
-  final String title;
-  final List<Color> colors;
-
+class const _PaletteComparisonStrip({
+  required final String title,
+  required final List<Color> colors,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -441,9 +410,9 @@ class _PaletteComparisonStrip extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 4),
         ClipRRect(
@@ -480,17 +449,11 @@ class _PaletteComparisonStrip extends StatelessWidget {
   }
 }
 
-class _ExportHubCard extends StatelessWidget {
-  const _ExportHubCard({
-    required this.state,
-    required this.format,
-    required this.onFormatChanged,
-  });
-
-  final StudioState state;
-  final _ExportFormat format;
-  final ValueChanged<_ExportFormat> onFormatChanged;
-
+class const _ExportHubCard({
+  required final StudioState state,
+  required final _ExportFormat format,
+  required final ValueChanged<_ExportFormat> onFormatChanged,
+}) extends StatelessWidget {
   String _generateCode() {
     final palette = state.palette;
     final scale = state.activeColor.tonalRamp(
@@ -532,14 +495,20 @@ class _ExportHubCard extends StatelessWidget {
       case _ExportFormat.flutter:
         final buf = StringBuffer('abstract final class AppPalette {\n');
         for (int i = 0; i < palette.length; i++) {
-          final argb =
-              palette[i].color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
+          final argb = palette[i].color
+              .toARGB32()
+              .toRadixString(16)
+              .padLeft(8, '0')
+              .toUpperCase();
           buf.writeln('  static const Color slot${i + 1} = Color(0x$argb);');
         }
         buf.writeln('\n  static const Map<int, Color> brandScale = {');
         for (final stop in scale) {
-          final argb =
-              stop.color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
+          final argb = stop.color
+              .toARGB32()
+              .toRadixString(16)
+              .padLeft(8, '0')
+              .toUpperCase();
           buf.writeln('    ${stop.token}: Color(0x$argb),');
         }
         buf.write('  };\n}');
@@ -600,10 +569,22 @@ class _ExportHubCard extends StatelessWidget {
               child: StudioPillSelector<_ExportFormat>(
                 compact: true,
                 options: const [
-                  StudioPillOption(value: _ExportFormat.css4, label: 'CSS OKLCH'),
-                  StudioPillOption(value: _ExportFormat.tailwind, label: 'Tailwind v4'),
-                  StudioPillOption(value: _ExportFormat.flutter, label: 'Flutter'),
-                  StudioPillOption(value: _ExportFormat.designTokens, label: 'W3C Tokens'),
+                  StudioPillOption(
+                    value: _ExportFormat.css4,
+                    label: 'CSS OKLCH',
+                  ),
+                  StudioPillOption(
+                    value: _ExportFormat.tailwind,
+                    label: 'Tailwind v4',
+                  ),
+                  StudioPillOption(
+                    value: _ExportFormat.flutter,
+                    label: 'Flutter',
+                  ),
+                  StudioPillOption(
+                    value: _ExportFormat.designTokens,
+                    label: 'W3C Tokens',
+                  ),
                 ],
                 value: format,
                 onChanged: onFormatChanged,
@@ -635,9 +616,7 @@ class _ExportHubCard extends StatelessWidget {
   }
 }
 
-class _AboutLinksCard extends StatelessWidget {
-  const _AboutLinksCard();
-
+class const _AboutLinksCard() extends StatelessWidget {
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -662,7 +641,9 @@ class _AboutLinksCard extends StatelessWidget {
           children: [
             Text(
               'HSLuv Color Studio',
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -690,8 +671,9 @@ class _AboutLinksCard extends StatelessWidget {
                 ActionChip(
                   avatar: const Icon(Icons.palette_outlined, size: 16),
                   label: const Text('Material 3 Color System'),
-                  onPressed: () =>
-                      _openUrl('https://m3.material.io/styles/color/system/overview'),
+                  onPressed: () => _openUrl(
+                    'https://m3.material.io/styles/color/system/overview',
+                  ),
                 ),
                 ActionChip(
                   avatar: const Icon(Icons.colorize_rounded, size: 16),

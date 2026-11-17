@@ -9,12 +9,12 @@ import 'studio_theme.dart';
 
 /// The picked colour shown as itself, with its name, its codes and the
 /// palette it belongs to.
-class SpecimenStage extends StatefulWidget {
-  const SpecimenStage({super.key, required this.expanded});
+class const SpecimenStage({
+  super.key,
 
   /// Whether the stage fills a tall side panel or sits as a compact card.
-  final bool expanded;
-
+  required final bool expanded,
+}) extends StatefulWidget {
   @override
   State<SpecimenStage> createState() => _SpecimenStageState();
 }
@@ -159,13 +159,11 @@ class _SpecimenStageState extends State<SpecimenStage> {
 }
 
 /// The hex value set as plain type on the colour; tap to copy it.
-class _HexLabel extends StatelessWidget {
-  const _HexLabel({required this.hex, required this.ink, required this.onTap});
-
-  final String hex;
-  final Color ink;
-  final VoidCallback onTap;
-
+class const _HexLabel({
+  required final String hex,
+  required final Color ink,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
@@ -206,19 +204,12 @@ class _HexLabel extends StatelessWidget {
 }
 
 /// An icon with no plate behind it, for sitting directly on a colour.
-class _QuietIconButton extends StatelessWidget {
-  const _QuietIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.ink,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final Color ink;
-  final VoidCallback onTap;
-
+class const _QuietIconButton({
+  required final IconData icon,
+  required final String tooltip,
+  required final Color ink,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
@@ -247,22 +238,15 @@ class _QuietIconButton extends StatelessWidget {
 ///
 /// The colours touch each other, except the selected one, which stands apart
 /// from its neighbours as its own chip.
-class _PaletteTray extends StatelessWidget {
-  const _PaletteTray({
-    required this.palette,
-    required this.selectedIndex,
-    required this.onSelect,
-    required this.onShuffle,
-  });
-
+class const _PaletteTray({
+  required final List<StudioColor> palette,
+  required final int selectedIndex,
+  required final ValueChanged<int> onSelect,
+  required final VoidCallback onShuffle,
+}) extends StatelessWidget {
   static const double _height = 50;
   static const double _inset = 3;
   static const double _shuffleWidth = 36 + 6 + 3;
-
-  final List<StudioColor> palette;
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
-  final VoidCallback onShuffle;
 
   void _selectAt(double localDx, double stripWidth) {
     if (stripWidth <= 0 || palette.isEmpty) return;
@@ -341,22 +325,15 @@ class _PaletteTray extends StatelessWidget {
 ///
 /// A gap opens on each side that borders the selected colour, and the
 /// corners beside a gap are rounded.
-class _Swatch extends StatelessWidget {
-  const _Swatch({
-    required this.color,
-    required this.isSelected,
-    required this.gapBefore,
-    required this.gapAfter,
-  });
-
+class const _Swatch({
+  required final Color color,
+  required final bool isSelected,
+  required final bool gapBefore,
+  required final bool gapAfter,
+}) extends StatelessWidget {
   static const double _halfGap = 1.5;
   static const Radius _chipCorner = Radius.circular(10);
   static const Radius _neighbourCorner = Radius.circular(5);
-
-  final Color color;
-  final bool isSelected;
-  final bool gapBefore;
-  final bool gapAfter;
 
   @override
   Widget build(BuildContext context) {
@@ -380,11 +357,8 @@ class _Swatch extends StatelessWidget {
 }
 
 /// Asks for a colour as hex, rgb() or oklch(), previewing it while typing.
-class _ColourEntryDialog extends StatefulWidget {
-  const _ColourEntryDialog({required this.current});
-
-  final StudioColor current;
-
+class const _ColourEntryDialog({required final StudioColor current})
+    extends StatefulWidget {
   @override
   State<_ColourEntryDialog> createState() => _ColourEntryDialogState();
 }

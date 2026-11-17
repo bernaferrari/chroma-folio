@@ -10,24 +10,20 @@ import 'package:material_ui/material_ui.dart';
 ///
 /// The strip tracks the finger exactly, keeps its momentum when flung and
 /// always comes to rest with a band centred in the lens.
-class ReelMotion extends ChangeNotifier {
-  ReelMotion({
-    required TickerProvider vsync,
-    required this.onStart,
-    required this.onChanged,
-    required this.onEnd,
-  }) {
-    _ticker = vsync.createTicker(_tick);
-  }
-
+class ReelMotion({
+  required TickerProvider vsync,
+  required final VoidCallback onStart,
+  required final ValueChanged<double> onChanged,
+  required final VoidCallback onEnd,
+}) extends ChangeNotifier {
   static const double _flingReach = 0.32;
   static const double _overscrollGive = 0.3;
 
-  final VoidCallback onStart;
-  final ValueChanged<double> onChanged;
-  final VoidCallback onEnd;
-
   late final Ticker _ticker;
+
+  this {
+    _ticker = vsync.createTicker(_tick);
+  }
 
   double min = 0;
   double max = 100;
@@ -206,20 +202,13 @@ class ReelMotion extends ChangeNotifier {
 }
 
 /// Turns drags, flings, taps and wheel scrolling into [ReelMotion] calls.
-class ReelSurface extends StatefulWidget {
-  const ReelSurface({
-    super.key,
-    required this.motion,
-    required this.axis,
-    required this.child,
-    this.onPressedChanged,
-  });
-
-  final ReelMotion motion;
-  final Axis axis;
-  final Widget child;
-  final ValueChanged<bool>? onPressedChanged;
-
+class const ReelSurface({
+  super.key,
+  required final ReelMotion motion,
+  required final Axis axis,
+  required final Widget child,
+  final ValueChanged<bool>? onPressedChanged,
+}) extends StatefulWidget {
   @override
   State<ReelSurface> createState() => _ReelSurfaceState();
 }
@@ -328,23 +317,18 @@ class _ReelSurfaceState extends State<ReelSurface> {
 }
 
 /// Paints the bands of a reel around the lens at the centre of the canvas.
-class ReelStripPainter extends CustomPainter {
-  ReelStripPainter({
-    required this.motion,
-    required this.axis,
-    required this.colorAt,
-    required this.paletteKey,
-  }) : super(repaint: motion);
+class ReelStripPainter({
+  required final ReelMotion motion,
+  required final Axis axis,
+  required final Color Function(double value) colorAt,
 
+  /// Changes whenever [colorAt] would return different colours.
+  required final Object paletteKey,
+}) extends CustomPainter {
   static const double _endRadius = 20;
   static const double _seamOverlap = 0.5;
 
-  final ReelMotion motion;
-  final Axis axis;
-  final Color Function(double value) colorAt;
-
-  /// Changes whenever [colorAt] would return different colours.
-  final Object paletteKey;
+  this : super(repaint: motion);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -411,22 +395,15 @@ class ReelStripPainter extends CustomPainter {
 }
 
 /// The fixed window at the centre of a reel showing the exact picked colour.
-class ReelLens extends StatelessWidget {
-  const ReelLens({
-    super.key,
-    required this.color,
-    required this.pressed,
-    this.quiet = false,
-    this.child,
-  });
-
-  final Color color;
-  final bool pressed;
+class const ReelLens({
+  super.key,
+  required final Color color,
+  required final bool pressed,
 
   /// A quiet lens only previews a colour; it is not the one being picked.
-  final bool quiet;
-  final Widget? child;
-
+  final bool quiet = false,
+  final Widget? child,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(

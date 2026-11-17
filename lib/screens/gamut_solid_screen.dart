@@ -18,9 +18,7 @@ import '../widgets/studio_theme.dart';
 /// The solid is cut open at the picked lightness. Drag sideways to turn it,
 /// drag on the cut face to pick a hue and saturation, and move the cut with
 /// the lightness reel beside it or by dragging up or down off the cut face.
-class GamutSolidScreen extends StatefulWidget {
-  const GamutSolidScreen({super.key});
-
+class const GamutSolidScreen({super.key}) extends StatefulWidget {
   @override
   State<GamutSolidScreen> createState() => _GamutSolidScreenState();
 }
@@ -291,20 +289,18 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
 }
 
 /// Looks at the solid from slightly above, turned by [yaw] around its axis.
-class _Camera {
-  _Camera({required this.yaw, required Size size})
-    : centre = size.center(Offset.zero),
-      scale = math.max(1, math.min(size.width / 1.3, size.height / 1.65));
-
+class _Camera({required final double yaw, required Size size}) {
   /// Distance from the axis to the widest point of a solid.
   static const double radius = 0.55;
   static const double _pitch = 0.5;
   static final double _sinPitch = math.sin(_pitch);
   static final double _cosPitch = math.cos(_pitch);
 
-  final double yaw;
-  final Offset centre;
-  final double scale;
+  final Offset centre = size.center(Offset.zero);
+  final double scale = math.max(
+    1,
+    math.min(size.width / 1.3, size.height / 1.65),
+  );
 
   /// The yaw that brings [hue] to the front.
   static double yawFacing(double hue) => hue * math.pi / 180 - math.pi / 2;
@@ -353,10 +349,18 @@ class _Camera {
 
 /// The outside of a solid: how far each hue reaches at each lightness, and
 /// the most saturated colour found there.
-class _SolidMesh {
-  _SolidMesh._(ColorSpaceMode space)
-    : reach = Float32List((rows + 1) * columns),
-      colors = Int32List((rows + 1) * columns) {
+class _SolidMesh._(ColorSpaceMode space) {
+  factory of(ColorSpaceMode space) =>
+      _cache.putIfAbsent(space, () => _SolidMesh._(space));
+
+  static const int columns = 72;
+  static const int rows = 40;
+  static final Map<ColorSpaceMode, _SolidMesh> _cache = {};
+
+  final Float32List reach = Float32List((rows + 1) * columns);
+  final Int32List colors = Int32List((rows + 1) * columns);
+
+  this {
     for (var row = 0; row <= rows; row++) {
       for (var column = 0; column < columns; column++) {
         final hue = hueOf(column);
@@ -373,26 +377,19 @@ class _SolidMesh {
     }
   }
 
-  factory _SolidMesh.of(ColorSpaceMode space) =>
-      _cache.putIfAbsent(space, () => _SolidMesh._(space));
-
-  static const int columns = 72;
-  static const int rows = 40;
-  static final Map<ColorSpaceMode, _SolidMesh> _cache = {};
-
-  final Float32List reach;
-  final Int32List colors;
-
   static double hueOf(int column) => column * 360 / columns;
   static double lightnessOf(int row) => row * 100 / rows;
 }
 
 /// The cut face of a solid at one lightness, as rings from the grey axis out
 /// to the edge.
-class _Slice {
-  _Slice(this.space, this.lightness)
-    : reach = Float32List(_SolidMesh.columns),
-      colors = Int32List((rings + 1) * _SolidMesh.columns) {
+class _Slice(final ColorSpaceMode space, final double lightness) {
+  static const int rings = 6;
+
+  final Float32List reach = Float32List(_SolidMesh.columns);
+  final Int32List colors = Int32List((rings + 1) * _SolidMesh.columns);
+
+  this {
     for (var column = 0; column < _SolidMesh.columns; column++) {
       final hue = _SolidMesh.hueOf(column);
       reach[column] = chromaReach(space, hue: hue, lightnessPct: lightness);
@@ -407,40 +404,25 @@ class _Slice {
     }
   }
 
-  static const int rings = 6;
-
-  final ColorSpaceMode space;
-  final double lightness;
-  final Float32List reach;
-  final Int32List colors;
-
   bool matches(ColorSpaceMode space, double lightness) =>
       this.space == space && this.lightness == lightness;
 }
 
-class _SolidPainter extends CustomPainter {
-  _SolidPainter({
-    required this.spin,
-    required this.mesh,
-    required this.slice,
-    required this.markerHue,
-    required this.markerReach,
-    required this.markerColor,
-    required this.cageColor,
-  }) : super(repaint: spin);
-
+class _SolidPainter({
+  required final Animation<double> spin,
+  required final _SolidMesh mesh,
+  required final _Slice slice,
+  required final double markerHue,
+  required final double markerReach,
+  required final Color markerColor,
+  required final Color cageColor,
+}) extends CustomPainter {
   static const int _columns = _SolidMesh.columns;
   static const int _cageRingEvery = 5;
   static const int _cageRibEvery = 6;
   static const double _markerRadius = 13;
 
-  final Animation<double> spin;
-  final _SolidMesh mesh;
-  final _Slice slice;
-  final double markerHue;
-  final double markerReach;
-  final Color markerColor;
-  final Color cageColor;
+  this : super(repaint: spin);
 
   @override
   void paint(Canvas canvas, Size size) {

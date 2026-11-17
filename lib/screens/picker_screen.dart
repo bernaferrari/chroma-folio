@@ -5,9 +5,7 @@ import '../blocs/studio_cubit.dart';
 import '../widgets/channel_reel.dart';
 
 /// Three reels side by side, one for each channel of the active colour space.
-class PickerScreen extends StatelessWidget {
-  const PickerScreen({super.key});
-
+class const PickerScreen({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<StudioCubit, StudioState>(

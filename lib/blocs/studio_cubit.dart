@@ -7,17 +7,15 @@ import 'package:material_ui/material_ui.dart';
 import '../models/accessibility_utils.dart';
 import '../models/color_spaces.dart';
 
-class StudioState extends Equatable {
-  const StudioState({
-    required this.palette,
-    required this.selectedIndex,
-    required this.activeSpace,
-    required this.themeMode,
-    required this.undoStack,
-    required this.redoStack,
-  });
-
-  factory StudioState.initial() {
+class const StudioState({
+  required final List<StudioColor> palette,
+  required final int selectedIndex,
+  required final ColorSpaceMode activeSpace,
+  required final ThemeMode themeMode,
+  required final List<List<StudioColor>> undoStack,
+  required final List<List<StudioColor>> redoStack,
+}) extends Equatable {
+  factory initial() {
     return StudioState(
       palette: defaultStudioPalette(),
       selectedIndex: 0,
@@ -27,13 +25,6 @@ class StudioState extends Equatable {
       redoStack: const [],
     );
   }
-
-  final List<StudioColor> palette;
-  final int selectedIndex;
-  final ColorSpaceMode activeSpace;
-  final ThemeMode themeMode;
-  final List<List<StudioColor>> undoStack;
-  final List<List<StudioColor>> redoStack;
 
   StudioColor get activeColor => palette[selectedIndex];
   bool get canUndo => undoStack.isNotEmpty;
@@ -68,8 +59,8 @@ class StudioState extends Equatable {
   ];
 }
 
-class StudioCubit extends Cubit<StudioState> {
-  StudioCubit() : super(StudioState.initial());
+class StudioCubit() extends Cubit<StudioState> {
+  this : super(StudioState.initial());
 
   List<StudioColor>? _scrubSnapshot;
   static const int _maxHistory = 30;

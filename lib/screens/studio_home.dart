@@ -15,9 +15,7 @@ enum _Lens { reels, spectrum, solid, palette }
 
 /// App shell: the specimen on one side, and the tools that change it on the
 /// other.
-class StudioHome extends StatefulWidget {
-  const StudioHome({super.key});
-
+class const StudioHome({super.key}) extends StatefulWidget {
   @override
   State<StudioHome> createState() => _StudioHomeState();
 }
@@ -254,11 +252,8 @@ class _StudioHomeState extends State<StudioHome> {
   }
 }
 
-class _SpaceSelector extends StatelessWidget {
-  const _SpaceSelector({this.expand = false});
-
-  final bool expand;
-
+class const _SpaceSelector({final bool expand = false})
+    extends StatelessWidget {
   static const _spaces = [
     ColorSpaceMode.hsluv,
     ColorSpaceMode.oklch,
@@ -283,9 +278,7 @@ class _SpaceSelector extends StatelessWidget {
   }
 }
 
-class _HistoryAndThemeActions extends StatelessWidget {
-  const _HistoryAndThemeActions();
-
+class const _HistoryAndThemeActions() extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<StudioCubit>();

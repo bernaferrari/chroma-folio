@@ -16,9 +16,7 @@ import '../widgets/studio_theme.dart';
 /// across hues. The strip of the active colour space is the one being picked
 /// from: the colour in its lens is the active colour. Touching another strip
 /// makes its space the active one.
-class SpaceComparisonScreen extends StatefulWidget {
-  const SpaceComparisonScreen({super.key});
-
+class const SpaceComparisonScreen({super.key}) extends StatefulWidget {
   @override
   State<SpaceComparisonScreen> createState() => _SpaceComparisonScreenState();
 }
@@ -163,29 +161,19 @@ class _SpaceComparisonScreenState extends State<SpaceComparisonScreen>
   }
 }
 
-class _SpectrumStrip extends StatelessWidget {
-  const _SpectrumStrip({
-    required this.mode,
-    required this.motion,
-    required this.bandLength,
-    required this.picking,
-    required this.pressed,
-    required this.paletteKey,
-    required this.colorAt,
-  });
-
-  static const double _lensOverhang = 7;
-  static const double _lensInset = 7;
-
-  final ColorSpaceMode mode;
-  final ReelMotion motion;
-  final double bandLength;
+class const _SpectrumStrip({
+  required final ColorSpaceMode mode,
+  required final ReelMotion motion,
+  required final double bandLength,
 
   /// Whether the colour in this strip's lens is the active colour.
-  final bool picking;
-  final bool pressed;
-  final Object paletteKey;
-  final Color Function(double hue) colorAt;
+  required final bool picking,
+  required final bool pressed,
+  required final Object paletteKey,
+  required final Color Function(double hue) colorAt,
+}) extends StatelessWidget {
+  static const double _lensOverhang = 7;
+  static const double _lensInset = 7;
 
   /// Darkest and lightest perceived lightness around the whole strip.
   (int, int) _lightnessRange() {

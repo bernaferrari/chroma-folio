@@ -29,20 +29,20 @@ enum ColorSpaceMode {
   hsv;
 
   String get label => switch (this) {
-        ColorSpaceMode.hsluv => 'HSLuv',
-        ColorSpaceMode.oklch => 'OKLCH',
-        ColorSpaceMode.hct => 'HCT',
-        ColorSpaceMode.hsl => 'HSL',
-        ColorSpaceMode.hsv => 'HSV',
-      };
+    ColorSpaceMode.hsluv => 'HSLuv',
+    ColorSpaceMode.oklch => 'OKLCH',
+    ColorSpaceMode.hct => 'HCT',
+    ColorSpaceMode.hsl => 'HSL',
+    ColorSpaceMode.hsv => 'HSV',
+  };
 
   String get subtitle => switch (this) {
-        ColorSpaceMode.hsluv => 'CIELUV perceptual, gamut-normalized S',
-        ColorSpaceMode.oklch => 'CSS Color 4 perceptual Oklab polar',
-        ColorSpaceMode.hct => 'Material 3 CAM16 + L* tone space',
-        ColorSpaceMode.hsl => 'Legacy cylindrical sRGB (non-uniform)',
-        ColorSpaceMode.hsv => 'Legacy hexcone sRGB (non-uniform)',
-      };
+    ColorSpaceMode.hsluv => 'CIELUV perceptual, gamut-normalized S',
+    ColorSpaceMode.oklch => 'CSS Color 4 perceptual Oklab polar',
+    ColorSpaceMode.hct => 'Material 3 CAM16 + L* tone space',
+    ColorSpaceMode.hsl => 'Legacy cylindrical sRGB (non-uniform)',
+    ColorSpaceMode.hsv => 'Legacy hexcone sRGB (non-uniform)',
+  };
 
   bool get isPerceptual =>
       this == ColorSpaceMode.hsluv ||
@@ -50,73 +50,54 @@ enum ColorSpaceMode {
       this == ColorSpaceMode.hct;
 
   List<String> get channelNames => switch (this) {
-        ColorSpaceMode.hsluv => const ['Hue', 'Saturation', 'Lightness'],
-        ColorSpaceMode.oklch => const ['Hue', 'Chroma %', 'Lightness'],
-        ColorSpaceMode.hct => const ['Hue', 'Chroma', 'Tone'],
-        ColorSpaceMode.hsl => const ['Hue', 'Saturation', 'Lightness'],
-        ColorSpaceMode.hsv => const ['Hue', 'Saturation', 'Value'],
-      };
+    ColorSpaceMode.hsluv => const ['Hue', 'Saturation', 'Lightness'],
+    ColorSpaceMode.oklch => const ['Hue', 'Chroma %', 'Lightness'],
+    ColorSpaceMode.hct => const ['Hue', 'Chroma', 'Tone'],
+    ColorSpaceMode.hsl => const ['Hue', 'Saturation', 'Lightness'],
+    ColorSpaceMode.hsv => const ['Hue', 'Saturation', 'Value'],
+  };
 
   List<String> get channelShortNames => switch (this) {
-        ColorSpaceMode.hsluv => const ['H', 'S', 'L'],
-        ColorSpaceMode.oklch => const ['h', 'C', 'L'],
-        ColorSpaceMode.hct => const ['H', 'C', 'T'],
-        ColorSpaceMode.hsl => const ['H', 'S', 'L'],
-        ColorSpaceMode.hsv => const ['H', 'S', 'V'],
-      };
+    ColorSpaceMode.hsluv => const ['H', 'S', 'L'],
+    ColorSpaceMode.oklch => const ['h', 'C', 'L'],
+    ColorSpaceMode.hct => const ['H', 'C', 'T'],
+    ColorSpaceMode.hsl => const ['H', 'S', 'L'],
+    ColorSpaceMode.hsv => const ['H', 'S', 'V'],
+  };
 }
 
 /// Metadata and live value for one channel column in the picker.
-class ChannelDescriptor {
-  const ChannelDescriptor({
-    required this.index,
-    required this.name,
-    required this.shortName,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.unit,
-    required this.formattedValue,
-    this.secondaryLabel,
-  });
-
-  final int index;
-  final String name;
-  final String shortName;
-  final double value;
-  final double min;
-  final double max;
-  final String unit;
-  final String formattedValue;
-  final String? secondaryLabel;
-
+class const ChannelDescriptor({
+  required final int index,
+  required final String name,
+  required final String shortName,
+  required final double value,
+  required final double min,
+  required final double max,
+  required final String unit,
+  required final String formattedValue,
+  final String? secondaryLabel,
+}) {
   double get normalized =>
       max == min ? 0.0 : ((value - min) / (max - min)).clamp(0.0, 1.0);
 }
 
 /// Exact Oklab / OKLCH (CSS Color 4) perceptual color model with sRGB gamut mapping.
-class OklchColor extends Equatable {
-  const OklchColor({
-    required this.lightness,
-    required this.chroma,
-    required this.hue,
-    this.relativePercent,
-  });
-
+class const OklchColor({
   /// Lightness in [0..100]%.
-  final double lightness;
+  required final double lightness,
 
   /// Raw Oklab Chroma in [0..~0.37].
-  final double chroma;
+  required final double chroma,
 
   /// Hue angle in [0..360) degrees.
-  final double hue;
+  required final double hue,
 
   /// Share of the available chroma that was asked for, kept so it survives
   /// lightness values where no chroma is available.
-  final double? relativePercent;
-
-  factory OklchColor.fromColor(Color color) {
+  final double? relativePercent,
+}) extends Equatable {
+  factory fromColor(Color color) {
     final rLin = _srgbToLinear(color.r);
     final gLin = _srgbToLinear(color.g);
     final bLin = _srgbToLinear(color.b);
@@ -144,7 +125,7 @@ class OklchColor extends Equatable {
     );
   }
 
-  factory OklchColor.fromRelative({
+  factory fromRelative({
     required double hue,
     required double saturationPercent,
     required double lightness,
@@ -286,32 +267,20 @@ class OklchColor extends Equatable {
 }
 
 /// Unified color representation preserving channel coordinates across spaces.
-class StudioColor extends Equatable {
-  const StudioColor({
-    required this.color,
-    required this.hsluv,
-    required this.oklch,
-    required this.hctHue,
-    required this.hctChroma,
-    required this.hctChromaPercent,
-    required this.hctTone,
-    required this.hsl,
-    required this.hsv,
-  });
-
-  final Color color;
-  final HSLuvColor hsluv;
-  final OklchColor oklch;
-  final double hctHue;
-  final double hctChroma;
+class const StudioColor({
+  required final Color color,
+  required final HSLuvColor hsluv,
+  required final OklchColor oklch,
+  required final double hctHue,
+  required final double hctChroma,
 
   /// [hctChroma] as a share of the most chroma this hue and tone can reach.
-  final double hctChromaPercent;
-  final double hctTone;
-  final HSLColor hsl;
-  final HSVColor hsv;
-
-  factory StudioColor.fromColor(Color color) {
+  required final double hctChromaPercent,
+  required final double hctTone,
+  required final HSLColor hsl,
+  required final HSVColor hsv,
+}) extends Equatable {
+  factory fromColor(Color color) {
     final opaque = color.withValues(alpha: 1.0);
     final hct = Hct.fromInt(opaque.toARGB32());
     return StudioColor(
@@ -327,7 +296,7 @@ class StudioColor extends Equatable {
     );
   }
 
-  factory StudioColor.fromHsluv(HSLuvColor hsluv) {
+  factory fromHsluv(HSLuvColor hsluv) {
     final c = hsluv.toColor();
     final base = StudioColor.fromColor(c);
     return StudioColor(
@@ -343,7 +312,7 @@ class StudioColor extends Equatable {
     );
   }
 
-  factory StudioColor.fromOklch(OklchColor oklch) {
+  factory fromOklch(OklchColor oklch) {
     final c = oklch.toColor();
     final base = StudioColor.fromColor(c);
     return StudioColor(
@@ -359,7 +328,7 @@ class StudioColor extends Equatable {
     );
   }
 
-  factory StudioColor.fromHct(double hue, double chroma, double tone) {
+  factory fromHct(double hue, double chroma, double tone) {
     final normHue = ((hue % 360.0) + 360.0) % 360.0;
     final clampedChroma = chroma.clamp(0.0, 120.0);
     final clampedTone = tone.clamp(0.0, 100.0);
@@ -381,11 +350,7 @@ class StudioColor extends Equatable {
 
   /// HCT colour whose chroma is [chromaPercent] of what the hue and tone
   /// can reach, so every value from 0 to 100 gives a different colour.
-  factory StudioColor.fromHctRelative(
-    double hue,
-    double chromaPercent,
-    double tone,
-  ) {
+  factory fromHctRelative(double hue, double chromaPercent, double tone) {
     final normHue = ((hue % 360.0) + 360.0) % 360.0;
     final percent = chromaPercent.clamp(0.0, 100.0).toDouble();
     final clampedTone = tone.clamp(0.0, 100.0).toDouble();
@@ -407,7 +372,7 @@ class StudioColor extends Equatable {
   }
 
   /// The colour at [hue], [saturationPct] and [lightnessPct] in [mode].
-  factory StudioColor.fromSpace(
+  factory fromSpace(
     ColorSpaceMode mode, {
     required double hue,
     required double saturationPct,
@@ -417,17 +382,19 @@ class StudioColor extends Equatable {
     final s = saturationPct.clamp(0.0, 100.0).toDouble();
     final l = lightnessPct.clamp(0.0, 100.0).toDouble();
     return switch (mode) {
-      ColorSpaceMode.hsluv => StudioColor.fromHsluv(HSLuvColor.fromHSL(h, s, l)),
+      ColorSpaceMode.hsluv => StudioColor.fromHsluv(
+        HSLuvColor.fromHSL(h, s, l),
+      ),
       ColorSpaceMode.oklch => StudioColor.fromOklch(
-          OklchColor.fromRelative(hue: h, saturationPercent: s, lightness: l),
-        ),
+        OklchColor.fromRelative(hue: h, saturationPercent: s, lightness: l),
+      ),
       ColorSpaceMode.hct => StudioColor.fromHctRelative(h, s, l),
       ColorSpaceMode.hsl => StudioColor.fromHsl(
-          HSLColor.fromAHSL(1.0, h, s / 100.0, l / 100.0),
-        ),
+        HSLColor.fromAHSL(1.0, h, s / 100.0, l / 100.0),
+      ),
       ColorSpaceMode.hsv => StudioColor.fromHsv(
-          HSVColor.fromAHSV(1.0, h, s / 100.0, l / 100.0),
-        ),
+        HSVColor.fromAHSV(1.0, h, s / 100.0, l / 100.0),
+      ),
     };
   }
 
@@ -440,7 +407,7 @@ class StudioColor extends Equatable {
     return ((chroma / most) * 100.0).clamp(0.0, 100.0).toDouble();
   }
 
-  factory StudioColor.fromHsl(HSLColor hsl) {
+  factory fromHsl(HSLColor hsl) {
     final c = hsl.toColor();
     final base = StudioColor.fromColor(c);
     return StudioColor(
@@ -456,7 +423,7 @@ class StudioColor extends Equatable {
     );
   }
 
-  factory StudioColor.fromHsv(HSVColor hsv) {
+  factory fromHsv(HSVColor hsv) {
     final c = hsv.toColor();
     final base = StudioColor.fromColor(c);
     return StudioColor(
@@ -474,9 +441,21 @@ class StudioColor extends Equatable {
 
   /// Uppercase `#RRGGBB` hex string.
   String get hex {
-    final r = (color.r * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0');
-    final g = (color.g * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0');
-    final b = (color.b * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0');
+    final r = (color.r * 255.0)
+        .round()
+        .clamp(0, 255)
+        .toRadixString(16)
+        .padLeft(2, '0');
+    final g = (color.g * 255.0)
+        .round()
+        .clamp(0, 255)
+        .toRadixString(16)
+        .padLeft(2, '0');
+    final b = (color.b * 255.0)
+        .round()
+        .clamp(0, 255)
+        .toRadixString(16)
+        .padLeft(2, '0');
     return '#$r$g$b'.toUpperCase();
   }
 
@@ -505,167 +484,167 @@ class StudioColor extends Equatable {
   List<ChannelDescriptor> channelsFor(ColorSpaceMode mode) {
     return switch (mode) {
       ColorSpaceMode.hsluv => [
-          ChannelDescriptor(
-            index: 0,
-            name: 'Hue',
-            shortName: 'H',
-            value: hsluv.hue,
-            min: 0,
-            max: 360,
-            unit: '°',
-            formattedValue: '${hsluv.hue.round()}°',
-          ),
-          ChannelDescriptor(
-            index: 1,
-            name: 'Saturation',
-            shortName: 'S',
-            value: hsluv.saturation,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${hsluv.saturation.round()}%',
-          ),
-          ChannelDescriptor(
-            index: 2,
-            name: 'Lightness',
-            shortName: 'L',
-            value: hsluv.lightness,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${hsluv.lightness.round()}%',
-          ),
-        ],
+        ChannelDescriptor(
+          index: 0,
+          name: 'Hue',
+          shortName: 'H',
+          value: hsluv.hue,
+          min: 0,
+          max: 360,
+          unit: '°',
+          formattedValue: '${hsluv.hue.round()}°',
+        ),
+        ChannelDescriptor(
+          index: 1,
+          name: 'Saturation',
+          shortName: 'S',
+          value: hsluv.saturation,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${hsluv.saturation.round()}%',
+        ),
+        ChannelDescriptor(
+          index: 2,
+          name: 'Lightness',
+          shortName: 'L',
+          value: hsluv.lightness,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${hsluv.lightness.round()}%',
+        ),
+      ],
       ColorSpaceMode.oklch => [
-          ChannelDescriptor(
-            index: 0,
-            name: 'Hue',
-            shortName: 'h',
-            value: oklch.hue,
-            min: 0,
-            max: 360,
-            unit: '°',
-            formattedValue: '${oklch.hue.round()}°',
-          ),
-          ChannelDescriptor(
-            index: 1,
-            name: 'Chroma',
-            shortName: 'C',
-            value: oklch.relativeSaturationPercent,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${oklch.relativeSaturationPercent.round()}%',
-            secondaryLabel: 'C ${oklch.chroma.toStringAsFixed(3)}',
-          ),
-          ChannelDescriptor(
-            index: 2,
-            name: 'Lightness',
-            shortName: 'L',
-            value: oklch.lightness,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${oklch.lightness.round()}%',
-          ),
-        ],
+        ChannelDescriptor(
+          index: 0,
+          name: 'Hue',
+          shortName: 'h',
+          value: oklch.hue,
+          min: 0,
+          max: 360,
+          unit: '°',
+          formattedValue: '${oklch.hue.round()}°',
+        ),
+        ChannelDescriptor(
+          index: 1,
+          name: 'Chroma',
+          shortName: 'C',
+          value: oklch.relativeSaturationPercent,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${oklch.relativeSaturationPercent.round()}%',
+          secondaryLabel: 'C ${oklch.chroma.toStringAsFixed(3)}',
+        ),
+        ChannelDescriptor(
+          index: 2,
+          name: 'Lightness',
+          shortName: 'L',
+          value: oklch.lightness,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${oklch.lightness.round()}%',
+        ),
+      ],
       ColorSpaceMode.hct => [
-          ChannelDescriptor(
-            index: 0,
-            name: 'Hue',
-            shortName: 'H',
-            value: hctHue,
-            min: 0,
-            max: 360,
-            unit: '°',
-            formattedValue: '${hctHue.round()}°',
-          ),
-          ChannelDescriptor(
-            index: 1,
-            name: 'Chroma',
-            shortName: 'C',
-            value: hctChromaPercent,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${hctChromaPercent.round()}%',
-            secondaryLabel: 'C ${hctChroma.round()}',
-          ),
-          ChannelDescriptor(
-            index: 2,
-            name: 'Tone',
-            shortName: 'T',
-            value: hctTone,
-            min: 0,
-            max: 100,
-            unit: '',
-            formattedValue: hctTone.round().toString(),
-          ),
-        ],
+        ChannelDescriptor(
+          index: 0,
+          name: 'Hue',
+          shortName: 'H',
+          value: hctHue,
+          min: 0,
+          max: 360,
+          unit: '°',
+          formattedValue: '${hctHue.round()}°',
+        ),
+        ChannelDescriptor(
+          index: 1,
+          name: 'Chroma',
+          shortName: 'C',
+          value: hctChromaPercent,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${hctChromaPercent.round()}%',
+          secondaryLabel: 'C ${hctChroma.round()}',
+        ),
+        ChannelDescriptor(
+          index: 2,
+          name: 'Tone',
+          shortName: 'T',
+          value: hctTone,
+          min: 0,
+          max: 100,
+          unit: '',
+          formattedValue: hctTone.round().toString(),
+        ),
+      ],
       ColorSpaceMode.hsl => [
-          ChannelDescriptor(
-            index: 0,
-            name: 'Hue',
-            shortName: 'H',
-            value: hsl.hue,
-            min: 0,
-            max: 360,
-            unit: '°',
-            formattedValue: '${hsl.hue.round()}°',
-          ),
-          ChannelDescriptor(
-            index: 1,
-            name: 'Saturation',
-            shortName: 'S',
-            value: hsl.saturation * 100,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${(hsl.saturation * 100).round()}%',
-          ),
-          ChannelDescriptor(
-            index: 2,
-            name: 'Lightness',
-            shortName: 'L',
-            value: hsl.lightness * 100,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${(hsl.lightness * 100).round()}%',
-          ),
-        ],
+        ChannelDescriptor(
+          index: 0,
+          name: 'Hue',
+          shortName: 'H',
+          value: hsl.hue,
+          min: 0,
+          max: 360,
+          unit: '°',
+          formattedValue: '${hsl.hue.round()}°',
+        ),
+        ChannelDescriptor(
+          index: 1,
+          name: 'Saturation',
+          shortName: 'S',
+          value: hsl.saturation * 100,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${(hsl.saturation * 100).round()}%',
+        ),
+        ChannelDescriptor(
+          index: 2,
+          name: 'Lightness',
+          shortName: 'L',
+          value: hsl.lightness * 100,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${(hsl.lightness * 100).round()}%',
+        ),
+      ],
       ColorSpaceMode.hsv => [
-          ChannelDescriptor(
-            index: 0,
-            name: 'Hue',
-            shortName: 'H',
-            value: hsv.hue,
-            min: 0,
-            max: 360,
-            unit: '°',
-            formattedValue: '${hsv.hue.round()}°',
-          ),
-          ChannelDescriptor(
-            index: 1,
-            name: 'Saturation',
-            shortName: 'S',
-            value: hsv.saturation * 100,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${(hsv.saturation * 100).round()}%',
-          ),
-          ChannelDescriptor(
-            index: 2,
-            name: 'Value',
-            shortName: 'V',
-            value: hsv.value * 100,
-            min: 0,
-            max: 100,
-            unit: '%',
-            formattedValue: '${(hsv.value * 100).round()}%',
-          ),
-        ],
+        ChannelDescriptor(
+          index: 0,
+          name: 'Hue',
+          shortName: 'H',
+          value: hsv.hue,
+          min: 0,
+          max: 360,
+          unit: '°',
+          formattedValue: '${hsv.hue.round()}°',
+        ),
+        ChannelDescriptor(
+          index: 1,
+          name: 'Saturation',
+          shortName: 'S',
+          value: hsv.saturation * 100,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${(hsv.saturation * 100).round()}%',
+        ),
+        ChannelDescriptor(
+          index: 2,
+          name: 'Value',
+          shortName: 'V',
+          value: hsv.value * 100,
+          min: 0,
+          max: 100,
+          unit: '%',
+          formattedValue: '${(hsv.value * 100).round()}%',
+        ),
+      ],
     };
   }
 
@@ -677,149 +656,137 @@ class StudioColor extends Equatable {
   ) {
     return switch (mode) {
       ColorSpaceMode.hsluv => switch (channelIndex) {
-          0 => StudioColor.fromHsluv(
-              hsluv.withHue(((newValue % 360.0) + 360.0) % 360.0),
-            ),
-          1 => StudioColor.fromHsluv(
-              hsluv.withSaturation(newValue.clamp(0.0, 100.0)),
-            ),
-          _ => StudioColor.fromHsluv(
-              hsluv.withLightness(newValue.clamp(0.0, 100.0)),
-            ),
-        },
+        0 => StudioColor.fromHsluv(
+          hsluv.withHue(((newValue % 360.0) + 360.0) % 360.0),
+        ),
+        1 => StudioColor.fromHsluv(
+          hsluv.withSaturation(newValue.clamp(0.0, 100.0)),
+        ),
+        _ => StudioColor.fromHsluv(
+          hsluv.withLightness(newValue.clamp(0.0, 100.0)),
+        ),
+      },
       ColorSpaceMode.oklch => switch (channelIndex) {
-          0 => StudioColor.fromOklch(
-              OklchColor.fromRelative(
-                hue: newValue,
-                saturationPercent: oklch.relativeSaturationPercent,
-                lightness: oklch.lightness,
-              ),
-            ),
-          1 => StudioColor.fromOklch(
-              OklchColor.fromRelative(
-                hue: oklch.hue,
-                saturationPercent: newValue,
-                lightness: oklch.lightness,
-              ),
-            ),
-          _ => StudioColor.fromOklch(
-              OklchColor.fromRelative(
-                hue: oklch.hue,
-                saturationPercent: oklch.relativeSaturationPercent,
-                lightness: newValue,
-              ),
-            ),
-        },
+        0 => StudioColor.fromOklch(
+          OklchColor.fromRelative(
+            hue: newValue,
+            saturationPercent: oklch.relativeSaturationPercent,
+            lightness: oklch.lightness,
+          ),
+        ),
+        1 => StudioColor.fromOklch(
+          OklchColor.fromRelative(
+            hue: oklch.hue,
+            saturationPercent: newValue,
+            lightness: oklch.lightness,
+          ),
+        ),
+        _ => StudioColor.fromOklch(
+          OklchColor.fromRelative(
+            hue: oklch.hue,
+            saturationPercent: oklch.relativeSaturationPercent,
+            lightness: newValue,
+          ),
+        ),
+      },
       ColorSpaceMode.hct => switch (channelIndex) {
-          0 => StudioColor.fromHctRelative(
-              newValue,
-              hctChromaPercent,
-              hctTone,
-            ),
-          1 => StudioColor.fromHctRelative(hctHue, newValue, hctTone),
-          _ => StudioColor.fromHctRelative(
-              hctHue,
-              hctChromaPercent,
-              newValue,
-            ),
-        },
+        0 => StudioColor.fromHctRelative(newValue, hctChromaPercent, hctTone),
+        1 => StudioColor.fromHctRelative(hctHue, newValue, hctTone),
+        _ => StudioColor.fromHctRelative(hctHue, hctChromaPercent, newValue),
+      },
       ColorSpaceMode.hsl => switch (channelIndex) {
-          0 => StudioColor.fromHsl(
-              hsl.withHue(((newValue % 360.0) + 360.0) % 360.0),
-            ),
-          1 => StudioColor.fromHsl(
-              hsl.withSaturation((newValue / 100.0).clamp(0.0, 1.0)),
-            ),
-          _ => StudioColor.fromHsl(
-              hsl.withLightness((newValue / 100.0).clamp(0.0, 1.0)),
-            ),
-        },
+        0 => StudioColor.fromHsl(
+          hsl.withHue(((newValue % 360.0) + 360.0) % 360.0),
+        ),
+        1 => StudioColor.fromHsl(
+          hsl.withSaturation((newValue / 100.0).clamp(0.0, 1.0)),
+        ),
+        _ => StudioColor.fromHsl(
+          hsl.withLightness((newValue / 100.0).clamp(0.0, 1.0)),
+        ),
+      },
       ColorSpaceMode.hsv => switch (channelIndex) {
-          0 => StudioColor.fromHsv(
-              hsv.withHue(((newValue % 360.0) + 360.0) % 360.0),
-            ),
-          1 => StudioColor.fromHsv(
-              hsv.withSaturation((newValue / 100.0).clamp(0.0, 1.0)),
-            ),
-          _ => StudioColor.fromHsv(
-              hsv.withValue((newValue / 100.0).clamp(0.0, 1.0)),
-            ),
-        },
+        0 => StudioColor.fromHsv(
+          hsv.withHue(((newValue % 360.0) + 360.0) % 360.0),
+        ),
+        1 => StudioColor.fromHsv(
+          hsv.withSaturation((newValue / 100.0).clamp(0.0, 1.0)),
+        ),
+        _ => StudioColor.fromHsv(
+          hsv.withValue((newValue / 100.0).clamp(0.0, 1.0)),
+        ),
+      },
     };
   }
 
   /// Fast color evaluation for rendering swatches/gradients along [channelIndex]
   /// where [value] is in that channel's natural [min..max] range.
-  Color sampleChannel(
-    ColorSpaceMode mode,
-    int channelIndex,
-    double value,
-  ) {
+  Color sampleChannel(ColorSpaceMode mode, int channelIndex, double value) {
     return switch (mode) {
       ColorSpaceMode.hsluv => switch (channelIndex) {
-          0 => HSLuvColor.fromHSL(
-              ((value % 360.0) + 360.0) % 360.0,
-              hsluv.saturation,
-              hsluv.lightness,
-            ).toColor(),
-          1 => HSLuvColor.fromHSL(
-              hsluv.hue,
-              value.clamp(0.0, 100.0),
-              hsluv.lightness,
-            ).toColor(),
-          _ => HSLuvColor.fromHSL(
-              hsluv.hue,
-              hsluv.saturation,
-              value.clamp(0.0, 100.0),
-            ).toColor(),
-        },
+        0 => HSLuvColor.fromHSL(
+          ((value % 360.0) + 360.0) % 360.0,
+          hsluv.saturation,
+          hsluv.lightness,
+        ).toColor(),
+        1 => HSLuvColor.fromHSL(
+          hsluv.hue,
+          value.clamp(0.0, 100.0),
+          hsluv.lightness,
+        ).toColor(),
+        _ => HSLuvColor.fromHSL(
+          hsluv.hue,
+          hsluv.saturation,
+          value.clamp(0.0, 100.0),
+        ).toColor(),
+      },
       ColorSpaceMode.oklch => switch (channelIndex) {
-          0 => OklchColor.fromRelative(
-              hue: value,
-              saturationPercent: oklch.relativeSaturationPercent,
-              lightness: oklch.lightness,
-            ).toColor(),
-          1 => OklchColor.fromRelative(
-              hue: oklch.hue,
-              saturationPercent: value,
-              lightness: oklch.lightness,
-            ).toColor(),
-          _ => OklchColor.fromRelative(
-              hue: oklch.hue,
-              saturationPercent: oklch.relativeSaturationPercent,
-              lightness: value,
-            ).toColor(),
-        },
+        0 => OklchColor.fromRelative(
+          hue: value,
+          saturationPercent: oklch.relativeSaturationPercent,
+          lightness: oklch.lightness,
+        ).toColor(),
+        1 => OklchColor.fromRelative(
+          hue: oklch.hue,
+          saturationPercent: value,
+          lightness: oklch.lightness,
+        ).toColor(),
+        _ => OklchColor.fromRelative(
+          hue: oklch.hue,
+          saturationPercent: oklch.relativeSaturationPercent,
+          lightness: value,
+        ).toColor(),
+      },
       ColorSpaceMode.hct => switch (channelIndex) {
-          0 => sampleAcrossSpace(
-              mode,
-              hue: value,
-              saturationPct: hctChromaPercent,
-              lightnessPct: hctTone,
-            ),
-          1 => sampleAcrossSpace(
-              mode,
-              hue: hctHue,
-              saturationPct: value,
-              lightnessPct: hctTone,
-            ),
-          _ => sampleAcrossSpace(
-              mode,
-              hue: hctHue,
-              saturationPct: hctChromaPercent,
-              lightnessPct: value,
-            ),
-        },
+        0 => sampleAcrossSpace(
+          mode,
+          hue: value,
+          saturationPct: hctChromaPercent,
+          lightnessPct: hctTone,
+        ),
+        1 => sampleAcrossSpace(
+          mode,
+          hue: hctHue,
+          saturationPct: value,
+          lightnessPct: hctTone,
+        ),
+        _ => sampleAcrossSpace(
+          mode,
+          hue: hctHue,
+          saturationPct: hctChromaPercent,
+          lightnessPct: value,
+        ),
+      },
       ColorSpaceMode.hsl => switch (channelIndex) {
-          0 => hsl.withHue(((value % 360.0) + 360.0) % 360.0).toColor(),
-          1 => hsl.withSaturation((value / 100.0).clamp(0.0, 1.0)).toColor(),
-          _ => hsl.withLightness((value / 100.0).clamp(0.0, 1.0)).toColor(),
-        },
+        0 => hsl.withHue(((value % 360.0) + 360.0) % 360.0).toColor(),
+        1 => hsl.withSaturation((value / 100.0).clamp(0.0, 1.0)).toColor(),
+        _ => hsl.withLightness((value / 100.0).clamp(0.0, 1.0)).toColor(),
+      },
       ColorSpaceMode.hsv => switch (channelIndex) {
-          0 => hsv.withHue(((value % 360.0) + 360.0) % 360.0).toColor(),
-          1 => hsv.withSaturation((value / 100.0).clamp(0.0, 1.0)).toColor(),
-          _ => hsv.withValue((value / 100.0).clamp(0.0, 1.0)).toColor(),
-        },
+        0 => hsv.withHue(((value % 360.0) + 360.0) % 360.0).toColor(),
+        1 => hsv.withSaturation((value / 100.0).clamp(0.0, 1.0)).toColor(),
+        _ => hsv.withValue((value / 100.0).clamp(0.0, 1.0)).toColor(),
+      },
     };
   }
 
@@ -828,7 +795,19 @@ class StudioColor extends Equatable {
     ColorSpaceMode mode,
   ) {
     const tokens = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
-    const stops = [96.0, 90.0, 82.0, 72.0, 62.0, 52.0, 43.0, 34.0, 25.0, 17.0, 10.0];
+    const stops = [
+      96.0,
+      90.0,
+      82.0,
+      72.0,
+      62.0,
+      52.0,
+      43.0,
+      34.0,
+      25.0,
+      17.0,
+      10.0,
+    ];
 
     return [
       for (int i = 0; i < tokens.length; i++)
@@ -836,18 +815,18 @@ class StudioColor extends Equatable {
           token: tokens[i],
           color: switch (mode) {
             ColorSpaceMode.hsluv => HSLuvColor.fromHSL(
-                hsluv.hue,
-                hsluv.saturation,
-                stops[i],
-              ).toColor(),
+              hsluv.hue,
+              hsluv.saturation,
+              stops[i],
+            ).toColor(),
             ColorSpaceMode.oklch => OklchColor.fromRelative(
-                hue: oklch.hue,
-                saturationPercent: oklch.relativeSaturationPercent,
-                lightness: stops[i],
-              ).toColor(),
+              hue: oklch.hue,
+              saturationPercent: oklch.relativeSaturationPercent,
+              lightness: stops[i],
+            ).toColor(),
             ColorSpaceMode.hct => Color(
-                Hct.from(hctHue, hctChroma, stops[i]).toInt(),
-              ),
+              Hct.from(hctHue, hctChroma, stops[i]).toInt(),
+            ),
             ColorSpaceMode.hsl => hsl.withLightness(stops[i] / 100.0).toColor(),
             ColorSpaceMode.hsv => hsv.withValue(stops[i] / 100.0).toColor(),
           },
@@ -858,16 +837,16 @@ class StudioColor extends Equatable {
 
   @override
   List<Object> get props => [
-        color,
-        hsluv,
-        oklch,
-        hctHue,
-        hctChroma,
-        hctChromaPercent,
-        hctTone,
-        hsl,
-        hsv,
-      ];
+    color,
+    hsluv,
+    oklch,
+    hctHue,
+    hctChroma,
+    hctChromaPercent,
+    hctTone,
+    hsl,
+    hsv,
+  ];
 }
 
 /// How far from the grey axis [mode] can go at [hue] and [lightnessPct],
@@ -904,18 +883,26 @@ Color sampleAcrossSpace(
   return switch (mode) {
     ColorSpaceMode.hsluv => HSLuvColor.fromHSL(h, s, l).toColor(),
     ColorSpaceMode.oklch => OklchColor.fromRelative(
-        hue: h,
-        saturationPercent: s,
-        lightness: l,
-      ).toColor(),
+      hue: h,
+      saturationPercent: s,
+      lightness: l,
+    ).toColor(),
     ColorSpaceMode.hct => () {
-        final maxChroma = Hct.from(h, 150.0, l).chroma;
-        return Color(Hct.from(h, maxChroma * (s / 100.0), l).toInt());
-      }(),
-    ColorSpaceMode.hsl =>
-      HSLColor.fromAHSL(1.0, h, s / 100.0, l / 100.0).toColor(),
-    ColorSpaceMode.hsv =>
-      HSVColor.fromAHSV(1.0, h, s / 100.0, l / 100.0).toColor(),
+      final maxChroma = Hct.from(h, 150.0, l).chroma;
+      return Color(Hct.from(h, maxChroma * (s / 100.0), l).toInt());
+    }(),
+    ColorSpaceMode.hsl => HSLColor.fromAHSL(
+      1.0,
+      h,
+      s / 100.0,
+      l / 100.0,
+    ).toColor(),
+    ColorSpaceMode.hsv => HSVColor.fromAHSV(
+      1.0,
+      h,
+      s / 100.0,
+      l / 100.0,
+    ).toColor(),
   };
 }
 
@@ -950,7 +937,16 @@ List<StudioColor> generateHarmoniousPalette(double seedHue) {
     92.0,
     18.0,
   ];
-  final saturations = [baseS, baseS, baseS, baseS * 0.9, baseS * 0.85, baseS, 22.0, 24.0];
+  final saturations = [
+    baseS,
+    baseS,
+    baseS,
+    baseS * 0.9,
+    baseS * 0.85,
+    baseS,
+    22.0,
+    24.0,
+  ];
 
   return [
     for (int i = 0; i < 8; i++)

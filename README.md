@@ -20,7 +20,7 @@
 In **Solid**, hue wraps around the axis, lightness rises from black to white, and chroma extends outward. Drag sideways to spin the solid, drag vertically (or use the lightness reel) to move the cut, and tap anywhere on the cut face to pick a colour.
 
 <p align="center">
-  <img src="docs/screenshots/oklch_vs_hsl_solid.webp" width="100%" alt="3D solid comparison of OKLCH vs HSL sweeping lightness between 40% and 85%">
+  <img src="docs/screenshots/oklch_vs_hsl_solid.webp" width="100%" alt="OKLCH and HSL solids turning side by side while the lightness cut sweeps; each page names the color facing the camera and shows eight chips from the cut">
 </p>
 
 **OKLCH** traces the true sRGB gamut while keeping perceived lightness constant across every hue on the cut. **HSL** forces every hue into a uniform cylinder, making yellow and green look far brighter than blue at the same slice height.

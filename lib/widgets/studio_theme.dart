@@ -5,46 +5,30 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Descriptor for an option inside [StudioPillSelector].
-class StudioPillOption<T> {
-  const StudioPillOption({
-    required this.value,
-    required this.label,
-    this.icon,
-    this.iconOnly = false,
-  });
-
-  final T value;
-  final String label;
-  final IconData? icon;
+class const StudioPillOption<T>({
+  required final T value,
+  required final String label,
+  final IconData? icon,
 
   /// Shows just [icon], keeping [label] as the tooltip and spoken name.
-  final bool iconOnly;
-}
+  final bool iconOnly = false,
+});
 
 /// Sleek, single-line segmented pill control that never wraps text across lines.
 ///
 /// When [canvasInk] is provided, renders in translucent adaptive ink suitable for
 /// placement directly over any live color surface.
-class StudioPillSelector<T> extends StatelessWidget {
-  const StudioPillSelector({
-    super.key,
-    required this.options,
-    required this.value,
-    required this.onChanged,
-    this.compact = false,
-    this.expand = false,
-    this.canvasInk,
-  });
-
-  final List<StudioPillOption<T>> options;
-  final T value;
-  final ValueChanged<T> onChanged;
-  final bool compact;
+class const StudioPillSelector<T>({
+  super.key,
+  required final List<StudioPillOption<T>> options,
+  required final T value,
+  required final ValueChanged<T> onChanged,
+  final bool compact = false,
 
   /// Fills the available width with equally wide options.
-  final bool expand;
-  final Color? canvasInk;
-
+  final bool expand = false,
+  final Color? canvasInk,
+}) extends StatelessWidget {
   Widget _item(
     StudioPillOption<T> option,
     Color selectedBg,
@@ -107,27 +91,16 @@ class StudioPillSelector<T> extends StatelessWidget {
   }
 }
 
-class _PillItem<T> extends StatelessWidget {
-  const _PillItem({
-    required this.option,
-    required this.selected,
-    required this.compact,
-    required this.expand,
-    required this.selectedBg,
-    required this.selectedBorder,
-    required this.onTap,
-    this.inkOverride,
-  });
-
-  final StudioPillOption<T> option;
-  final bool selected;
-  final bool compact;
-  final bool expand;
-  final Color selectedBg;
-  final Color selectedBorder;
-  final Color? inkOverride;
-  final VoidCallback onTap;
-
+class const _PillItem<T>({
+  required final StudioPillOption<T> option,
+  required final bool selected,
+  required final bool compact,
+  required final bool expand,
+  required final Color selectedBg,
+  required final Color selectedBorder,
+  required final VoidCallback onTap,
+  final Color? inkOverride,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -216,20 +189,13 @@ class _PillItem<T> extends StatelessWidget {
 }
 
 /// Hairline neutral toggle pill for single switches like WCAG markers.
-class StudioTogglePill extends StatelessWidget {
-  const StudioTogglePill({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.icon,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final IconData? icon;
-
+class const StudioTogglePill({
+  super.key,
+  required final String label,
+  required final bool selected,
+  required final VoidCallback onTap,
+  final IconData? icon,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -285,26 +251,18 @@ class StudioTogglePill extends StatelessWidget {
 }
 
 /// Round icon button that works on paper or, with [ink], on a live colour.
-class StudioIconButton extends StatefulWidget {
-  const StudioIconButton({
-    super.key,
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-    this.ink,
-    this.selected = false,
-  });
-
-  final IconData icon;
-  final String tooltip;
+class const StudioIconButton({
+  super.key,
+  required final IconData icon,
+  required final String tooltip,
 
   /// Null disables the button.
-  final VoidCallback? onTap;
+  required final VoidCallback? onTap,
 
   /// Text colour of the surface behind the button, when it is not paper.
-  final Color? ink;
-  final bool selected;
-
+  final Color? ink,
+  final bool selected = false,
+}) extends StatefulWidget {
   @override
   State<StudioIconButton> createState() => _StudioIconButtonState();
 }
