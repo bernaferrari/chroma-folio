@@ -199,7 +199,9 @@ class const StudioTogglePill({
 /// Round icon button that works on paper or, with [ink], on a live colour.
 class const StudioIconButton({
   super.key,
-  required final IconData icon,
+
+  /// Usually an [Icon]; the button sets its size and colour.
+  required final Widget icon,
   required final String tooltip,
 
   /// Null disables the button.
@@ -261,10 +263,12 @@ class _StudioIconButtonState extends State<StudioIconButton> {
                   color: ink.withValues(alpha: fill),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  widget.icon,
-                  size: 18,
-                  color: ink.withValues(alpha: enabled ? 0.86 : 0.26),
+                child: IconTheme.merge(
+                  data: IconThemeData(
+                    size: 18,
+                    color: ink.withValues(alpha: enabled ? 0.86 : 0.26),
+                  ),
+                  child: widget.icon,
                 ),
               ),
             ),

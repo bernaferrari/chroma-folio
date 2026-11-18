@@ -155,7 +155,10 @@ class StudioCubit({StudioState? initialState}) extends Cubit<StudioState> {
     final seedHue = math.Random().nextDouble() * 360.0;
     emit(
       state.copyWith(
-        palette: generateHarmoniousPalette(seedHue),
+        palette: generateHarmoniousPalette(
+          seedHue,
+          count: state.palette.length,
+        ),
         shuffleRevision: state.shuffleRevision + 1,
         undoStack: _pushUndo(state.undoStack, state.palette),
         redoStack: const [],
@@ -163,14 +166,13 @@ class StudioCubit({StudioState? initialState}) extends Cubit<StudioState> {
     );
   }
 
-  void applyColorsToPalette(List<StudioColor> colors) {
-    final updated = List<StudioColor>.from(state.palette);
-    for (int i = 0; i < updated.length && i < colors.length; i++) {
-      updated[i] = colors[i];
-    }
+  /// Replaces the palette, which may change how many swatches it has.
+  void applyColorsToPalette(List<StudioColor> colors, {int? selectedIndex}) {
+    if (colors.isEmpty) return;
     emit(
       state.copyWith(
-        palette: updated,
+        palette: List.of(colors),
+        selectedIndex: _clampSlot(selectedIndex ?? state.selectedIndex, colors),
         undoStack: _pushUndo(state.undoStack, state.palette),
         redoStack: const [],
       ),
@@ -197,7 +199,12 @@ class StudioCubit({StudioState? initialState}) extends Cubit<StudioState> {
     final nextUndo = state.undoStack.sublist(0, state.undoStack.length - 1);
     final nextRedo = [...state.redoStack, state.palette];
     emit(
-      state.copyWith(palette: prev, undoStack: nextUndo, redoStack: nextRedo),
+      state.copyWith(
+        palette: prev,
+        selectedIndex: _clampSlot(state.selectedIndex, prev),
+        undoStack: nextUndo,
+        redoStack: nextRedo,
+      ),
     );
   }
 
@@ -207,9 +214,17 @@ class StudioCubit({StudioState? initialState}) extends Cubit<StudioState> {
     final nextRedo = state.redoStack.sublist(0, state.redoStack.length - 1);
     final nextUndo = [...state.undoStack, state.palette];
     emit(
-      state.copyWith(palette: next, undoStack: nextUndo, redoStack: nextRedo),
+      state.copyWith(
+        palette: next,
+        selectedIndex: _clampSlot(state.selectedIndex, next),
+        undoStack: nextUndo,
+        redoStack: nextRedo,
+      ),
     );
   }
+
+  static int _clampSlot(int index, List<StudioColor> palette) =>
+      index.clamp(0, palette.length - 1);
 
   List<List<StudioColor>> _pushUndo(
     List<List<StudioColor>> stack,

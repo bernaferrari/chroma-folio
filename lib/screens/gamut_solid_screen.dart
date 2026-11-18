@@ -157,19 +157,27 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     });
   }
 
-  void _resetView() {
+  /// The shortest turn that faces the active hue again.
+  double get _turnToReset {
     final state = _cubit.state;
     final hue = state.activeColor.channelsFor(state.activeSpace)[0].value;
     final yaw = _Camera.yawFacing(hue);
+    return (yaw - _spin.value + math.pi) % (2 * math.pi) - math.pi;
+  }
+
+  bool get _viewIsReset =>
+      _turnToReset.abs() < 1e-3 && (_zoom.value - 1).abs() < 1e-3;
+
+  void _resetView() {
+    final turn = _turnToReset;
     if (MediaQuery.disableAnimationsOf(context)) {
-      _spin.value = yaw;
+      _spin.value += turn;
       _zoom.value = 1;
       return;
     }
 
     const duration = Duration(milliseconds: 260);
     const curve = Curves.easeInOutCubic;
-    final turn = (yaw - _spin.value + math.pi) % (2 * math.pi) - math.pi;
     _spin.animateTo(_spin.value + turn, duration: duration, curve: curve);
     _zoom.animateTo(1, duration: duration, curve: curve);
   }
@@ -377,14 +385,17 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
                       SingleActivator(LogicalKeyboardKey.space):
                           ActivateIntent(),
                     },
-                    child: IconButton(
-                      tooltip: 'Reset view',
-                      onPressed: _resetView,
-                      icon: const Icon(Icons.fit_screen_outlined, size: 19),
-                      color: scheme.onSurfaceVariant,
-                      style: IconButton.styleFrom(
-                        minimumSize: const Size.square(44),
-                        visualDensity: VisualDensity.standard,
+                    child: ListenableBuilder(
+                      listenable: Listenable.merge([_spin, _zoom]),
+                      builder: (context, _) => IconButton(
+                        tooltip: 'Reset view',
+                        onPressed: _viewIsReset ? null : _resetView,
+                        icon: const Icon(Icons.fit_screen_outlined, size: 19),
+                        color: scheme.onSurfaceVariant,
+                        style: IconButton.styleFrom(
+                          minimumSize: const Size.square(44),
+                          visualDensity: VisualDensity.standard,
+                        ),
                       ),
                     ),
                   ),

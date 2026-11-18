@@ -8,22 +8,27 @@
 
 <p align="center">Turn and slice a 3D color solid, spin the reels to find a color, then build a palette around it.</p>
 
-<p align="center"><a href="https://bernaferrari.github.io/chroma-folio/"><strong>Try Chroma Folio ↗</strong></a> · <a href="#turn-color-around">Explore the 3D view</a> · <a href="#run-from-source">Run the app</a> · <a href="#build-a-palette">Copy a palette</a></p>
+<p align="center"><a href="https://bernaferrari.github.io/chroma-folio/"><strong>Try Chroma Folio ↗</strong></a></p>
 
 <p align="center">
   <img src="docs/screenshots/colour-in-motion.webp" width="100%" alt="Dragging the lightness reel raises the OKLCH cut from 55% to 85% and brightens the blue specimen.">
   <br><sub>Raise the cut from 55% to 85% lightness.</sub>
 </p>
 
-## Turn color around
+## Why HSL lightness lies
 
-In **Solid**, hue wraps around the axis, lightness rises from black to white, and chroma extends outward. Drag sideways to spin the solid, drag vertically (or use the lightness reel) to move the cut, and tap anywhere on the cut face to pick a color.
+Many color pickers use HSL, where lightness comes from a formula rather than from what you see. Both wheels below are set to lightness 50. Watch the color drain from the middle: each hue turns into the gray it really looks like, right under its own color in the ring.
 
 <p align="center">
-  <img src="docs/screenshots/oklch_vs_hsl_solid.webp" width="100%" alt="OKLCH and HSL solids turning side by side while the lightness cut sweeps; each page names the color facing the camera and shows eight chips from the cut">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/screenshots/lightness_rings.png">
+    <img src="docs/screenshots/lightness_rings.webp" width="100%" alt="An HSL and an HSLuv color wheel, both at lightness 50. The color drains from the middle of each wheel. HSL's grays split into light spokes under yellow and cyan and dark ones under blue; HSLuv's settle into one even gray.">
+  </picture>
 </p>
 
-**OKLCH** traces the true sRGB gamut while keeping perceived lightness constant across every hue on the cut. **HSL** forces every hue into a uniform cylinder, making yellow and green look far brighter than blue at the same slice height.
+In HSL, yellow comes out almost white and blue comes out dark. HSLuv measures lightness the way eyes see it, so every gray matches. The trade-off is that its yellow turns olive, because no yellow can be both vivid and that dark.
+
+OKLCH and HCT keep lightness steady too. They also measure colorfulness in absolute terms instead of stretching every hue to the edge, so their solids take the lumpy shape of what a screen can actually show. Open **Solid** to turn that shape around: drag sideways to spin it, drag up or down to move the slice, and tap the slice to pick a color.
 
 ## See what a color space changes
 
@@ -33,7 +38,7 @@ Give four color spaces the same hue, saturation, and lightness and see how diffe
 
 ## Build a palette
 
-Start with one color and try its tonal scale or a harmony. Each harmony previews the base color, two accents, and five supporting shades. Tap one to fill your eight swatches, then drag along the swatch strip to pick a color to edit.
+Pick one of twelve **starter palettes**, from fluorescent Riso inks to quiet grays with one loud note, or grow a palette from a single color with its tonal scale or a harmony. Starters have four to eight colors, and harmonies and shuffle keep the size you have. Tap a harmony to fill your palette, then drag along the swatch strip to pick a color to edit.
 
 ![A blue tonal scale above four harmony previews with accents and supporting shades](docs/screenshots/palette.png)
 

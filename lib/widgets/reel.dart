@@ -41,6 +41,7 @@ class ReelMotion({
   double _decay = 11;
   bool _engaged = false;
   bool _dragging = false;
+  bool _pastEnd = false;
   int? _lastNotch;
 
   /// Unwrapped position of the lens along the strip, in channel units.
@@ -48,6 +49,14 @@ class ReelMotion({
   bool get isEngaged => _engaged;
   bool get isDragging => _dragging;
   double get _paintSign => reversed ? -1.0 : 1.0;
+
+  /// How far the strip is pulled past its end, in pixels along the axis.
+  /// The sign follows the finger; zero while the value is in range.
+  double get overshoot {
+    if (wraps) return 0;
+    final past = _position - _position.clamp(min, max);
+    return -_paintSign * past * pixelsPerUnit;
+  }
 
   /// Follows an outside value while nobody is touching the reel.
   void sync(double value) {
@@ -78,12 +87,16 @@ class ReelMotion({
     if (!_dragging) return;
     _raw -= _paintSign * deltaPixels / pixelsPerUnit;
     _position = wraps ? _raw : _withOverscrollGive(_raw);
+    final pastEnd = !wraps && (_raw < min || _raw > max);
+    if (pastEnd && !_pastEnd) HapticFeedback.mediumImpact();
+    _pastEnd = pastEnd;
     _emit();
   }
 
   void release(double pixelsPerSecond) {
     if (!_dragging) return;
     _dragging = false;
+    _pastEnd = false;
     final velocity = -_paintSign * pixelsPerSecond / pixelsPerUnit;
     _settleTo(_snap(_position + velocity * _flingReach), velocity: velocity);
   }
@@ -185,7 +198,8 @@ class ReelMotion({
     final value = wraps
         ? _wrapped(_position)
         : _position.clamp(min, max).toDouble();
-    final notch = (_position / step).round();
+    // Past the end the value is pinned, so the notches stop clicking.
+    final notch = ((wraps ? _position : value) / step).round();
     if (_lastNotch != null && _lastNotch != notch) {
       HapticFeedback.selectionClick();
     }
@@ -402,40 +416,64 @@ class const ReelLens({
 
   /// A quiet lens only previews a colour; it is not the one being picked.
   final bool quiet = false,
+
+  /// How hard the end of the strip pushes the lens, in pixels: the strip's
+  /// [ReelMotion.overshoot] along the reel's axis.
+  final Offset push = Offset.zero,
   final Widget? child,
 }) extends StatelessWidget {
+  static const double _maxShift = 9;
+  static const double _maxSquash = 0.07;
+  static const double _pushScale = 36;
+
   @override
   Widget build(BuildContext context) {
+    // Eases toward 1, so a long pull never runs away.
+    final give = 1 - math.exp(-push.distance / _pushScale);
+    final direction = push == Offset.zero ? Offset.zero : push / push.distance;
+    final along = Offset(direction.dx.abs(), direction.dy.abs()) * give;
+
     return IgnorePointer(
-      child: AnimatedScale(
-        scale: pressed ? 1.04 : 1.0,
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: quiet ? 0.55 : 1),
-              width: quiet ? 1.5 : 2.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: quiet ? 0 : 0.22),
-                blurRadius: 1.5,
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: quiet ? 0 : (pressed ? 0.30 : 0.20),
-                ),
-                blurRadius: pressed ? 22 : 12,
-                offset: Offset(0, pressed ? 8 : 4),
-              ),
-            ],
+      child: Transform.translate(
+        offset: direction * _maxShift * give,
+        child: Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(
+            1 - _maxSquash * along.dx + _maxSquash / 2 * along.dy,
+            1 - _maxSquash * along.dy + _maxSquash / 2 * along.dx,
+            1,
           ),
-          child: child,
+          child: AnimatedScale(
+            scale: pressed ? 1.04 : 1.0,
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: quiet ? 0.55 : 1),
+                  width: quiet ? 1.5 : 2.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: quiet ? 0 : 0.22),
+                    blurRadius: 1.5,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: quiet ? 0 : (pressed ? 0.30 : 0.20) + 0.08 * give,
+                    ),
+                    blurRadius: (pressed ? 22 : 12) + 10 * give,
+                    offset: Offset(0, pressed ? 8 : 4) + direction * 10 * give,
+                  ),
+                ],
+              ),
+              child: child,
+            ),
+          ),
         ),
       ),
     );

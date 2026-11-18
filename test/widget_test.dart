@@ -87,6 +87,31 @@ void main() {
         cubit.close();
       },
     );
+
+    test('palettes can change size and keep a valid selection', () {
+      final cubit = StudioCubit();
+      expect(cubit.state.palette, hasLength(8));
+      cubit.selectSlot(7);
+
+      final bubblegum = studioStarterPalettes.indexWhere(
+        (starter) => starter.name == 'Bubblegum',
+      );
+      cubit.applyColorsToPalette(studioStarterPaletteAt(bubblegum));
+      expect(cubit.state.palette, hasLength(4));
+      expect(cubit.state.selectedIndex, 3);
+
+      cubit.shufflePalette();
+      expect(cubit.state.palette, hasLength(4));
+
+      cubit.undo();
+      cubit.undo();
+      expect(cubit.state.palette, hasLength(8));
+      cubit.selectSlot(6);
+      cubit.redo();
+      expect(cubit.state.palette, hasLength(4));
+      expect(cubit.state.selectedIndex, 3);
+      cubit.close();
+    });
   });
 
   group('StudioApp widget tests', () {
@@ -170,6 +195,49 @@ void main() {
 
       await gesture.up();
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('pulling a reel past its end bumps once and pushes the lens', (
+      tester,
+    ) async {
+      final haptics = <String>[];
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          haptics.add(call.arguments as String);
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+
+      final cubit = await pumpStudio(tester);
+      final lens = find
+          .descendant(of: reel(2), matching: find.byType(AnimatedContainer))
+          .first;
+      final resting = tester.getCenter(lens);
+
+      final gesture = await tester.startGesture(tester.getCenter(reelStrip(2)));
+      for (var i = 0; i < 60; i++) {
+        await gesture.moveBy(const Offset(0, 20));
+        await tester.pump();
+      }
+      expect(cubit.state.activeColor.hsluv.lightness, closeTo(100, 0.01));
+      final bump = haptics.indexOf('HapticFeedbackType.mediumImpact');
+      expect(bump, isNot(-1));
+      expect(
+        haptics.skip(bump + 1),
+        isEmpty,
+        reason: 'the pinned value should not keep clicking',
+      );
+      final pushed = tester.getCenter(lens) - resting;
+      expect(pushed.dx, closeTo(0, 1e-6));
+      expect(pushed.dy, inExclusiveRange(4, 9.01));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.getCenter(lens), offsetMoreOrLessEquals(resting));
     });
 
     testWidgets('flinging the hue reel keeps it spinning and lands on a band', (
@@ -445,6 +513,12 @@ void main() {
         final before = cubit.state.activeColor;
         final original = await solidFrame(tester, viewport);
         final center = tester.getCenter(viewport);
+        final reset = find.widgetWithIcon(
+          IconButton,
+          Icons.fit_screen_outlined,
+        );
+        bool canReset() => tester.widget<IconButton>(reset).onPressed != null;
+        expect(canReset(), isFalse);
 
         final left = await tester.startGesture(center - const Offset(35, 0));
         final right = await tester.startGesture(center + const Offset(35, 0));
@@ -465,11 +539,8 @@ void main() {
         await tester.pumpAndSettle();
         final turned = await solidFrame(tester, viewport);
         expect(turned, isNot(zoomed));
+        expect(canReset(), isTrue);
 
-        final reset = find.widgetWithIcon(
-          IconButton,
-          Icons.fit_screen_outlined,
-        );
         expect(tester.getSize(reset).shortestSide, greaterThanOrEqualTo(44));
         final resetIcon = tester.element(
           find.byIcon(Icons.fit_screen_outlined),
@@ -487,6 +558,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(await solidFrame(tester, viewport), original);
+        expect(canReset(), isFalse);
         expect(cubit.state.activeColor, before);
         expect(cubit.state.canUndo, isFalse);
       },
@@ -557,6 +629,46 @@ void main() {
       await tester.tap(find.text('Triadic'));
       await tester.pumpAndSettle();
       expect(cubit.state.palette.map((c) => c.hex).toList(), isNot(before));
+    });
+
+    testWidgets('a starter palette can be previewed, applied, and undone', (
+      tester,
+    ) async {
+      final cubit = await pumpStudio(tester);
+      final before = cubit.state.palette;
+      await tester.tap(find.text('Palette'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Starter palettes'));
+      await tester.pumpAndSettle();
+      for (final preset in studioStarterPalettes) {
+        expect(find.text(preset.name), findsOneWidget);
+      }
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      cubit.selectSlot(5);
+      await tester.tap(find.text('Neon Arcade'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsNothing);
+      expect(cubit.state.palette, studioStarterPaletteAt(2));
+      expect(cubit.state.selectedIndex, 0);
+      await tester.tap(find.byIcon(Icons.undo_rounded));
+      await tester.pumpAndSettle();
+      expect(cubit.state.palette, before);
+
+      tester.view.physicalSize = const Size(360, 640);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Starter palettes'));
+      await tester.tap(find.text('Starter palettes'));
+      await tester.pumpAndSettle();
+      final lastPreset = find.text(studioStarterPalettes.last.name);
+      await tester.ensureVisible(lastPreset);
+      await tester.tap(lastPreset);
+      await tester.pumpAndSettle();
+      expect(
+        cubit.state.palette,
+        studioStarterPaletteAt(studioStarterPalettes.length - 1),
+      );
     });
 
     testWidgets('CSS copy emits Display P3 values for the palette', (

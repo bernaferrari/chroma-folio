@@ -196,9 +196,15 @@ class _ChannelReelState extends State<ChannelReel>
                           width: _isVertical
                               ? null
                               : bandLength + _lensOverhang * 2,
-                          child: ReelLens(
-                            color: widget.activeColor.color,
-                            pressed: _pressed,
+                          child: ListenableBuilder(
+                            listenable: _motion,
+                            builder: (context, _) => ReelLens(
+                              color: widget.activeColor.color,
+                              pressed: _pressed,
+                              push: _isVertical
+                                  ? Offset(0, _motion.overshoot)
+                                  : Offset(_motion.overshoot, 0),
+                            ),
                           ),
                         ),
                       ],

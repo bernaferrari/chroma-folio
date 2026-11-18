@@ -329,7 +329,7 @@ class const _PaletteTray({
               ),
               const SizedBox(width: 6),
               StudioIconButton(
-                icon: Icons.shuffle_rounded,
+                icon: const Icon(Icons.shuffle_rounded),
                 tooltip: 'Shuffle palette (Space)',
                 onTap: onShuffle,
               ),

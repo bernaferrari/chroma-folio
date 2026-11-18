@@ -906,104 +906,201 @@ Color sampleAcrossSpace(
   };
 }
 
-/// Chooses a curated eight-swatch palette for a new studio.
-List<StudioColor> defaultStudioPalette({math.Random? random}) {
-  const palettes = [
-    // Bright spectrum
-    [
-      Color(0xFF3B82F6),
-      Color(0xFFF97316),
-      Color(0xFF10B981),
-      Color(0xFFEC4899),
-      Color(0xFF8B5CF6),
-      Color(0xFFEAB308),
-      Color(0xFF06B6D4),
-      Color(0xFF1E293B),
-    ],
-    // Desert sunset
-    [
-      Color(0xFFE76F51),
-      Color(0xFFA95452),
-      Color(0xFFF4A261),
-      Color(0xFFE9C46A),
-      Color(0xFFB99B80),
-      Color(0xFFF7E5D1),
-      Color(0xFF8C6B55),
-      Color(0xFF48363B),
-    ],
-    // Tidal pool
-    [
-      Color(0xFF168C80),
-      Color(0xFF5DC9B2),
-      Color(0xFF81D4DA),
-      Color(0xFF4189A2),
-      Color(0xFF226478),
-      Color(0xFFC2DED4),
-      Color(0xFFEDE7D5),
-      Color(0xFF163B43),
-    ],
-    // Wisteria
-    [
-      Color(0xFF7D5AC2),
-      Color(0xFFAC91D8),
-      Color(0xFFD6C6EB),
-      Color(0xFF6064AE),
-      Color(0xFF888EBB),
-      Color(0xFFCE90B7),
-      Color(0xFFF3E4EF),
-      Color(0xFF362C53),
-    ],
-    // Botanical
-    [
-      Color(0xFF48734F),
-      Color(0xFF81A979),
-      Color(0xFFA9C853),
-      Color(0xFFBDC58B),
-      Color(0xFFDDE5C8),
-      Color(0xFFC88753),
-      Color(0xFFF1E9D7),
-      Color(0xFF344439),
-    ],
-    // Rosewater
-    [
-      Color(0xFFCD5E89),
-      Color(0xFFDD789E),
-      Color(0xFFE6A3B4),
-      Color(0xFFF4CBD0),
-      Color(0xFFB84FA1),
-      Color(0xFF945877),
-      Color(0xFFFFE8DB),
-      Color(0xFF4B2E40),
-    ],
-    // Blue hour
-    [
-      Color(0xFF5476B1),
-      Color(0xFF79B7E7),
-      Color(0xFF3E63DD),
-      Color(0xFF96AACB),
-      Color(0xFFBFD0E5),
-      Color(0xFFE0D8F0),
-      Color(0xFFF0EEE9),
-      Color(0xFF242D50),
-    ],
-    // Marigold
-    [
-      Color(0xFFBC9238),
-      Color(0xFFD3A72A),
-      Color(0xFFE7BF58),
-      Color(0xFFF4D992),
-      Color(0xFFE4A373),
-      Color(0xFF8C7950),
-      Color(0xFFF6EED7),
-      Color(0xFF52452E),
-    ],
-  ];
-  final palette = palettes[random?.nextInt(palettes.length) ?? 0];
-  return palette.map(StudioColor.fromColor).toList();
-}
+// The first swatch leads each palette and is selected when it is applied.
+// [background] is the swatch a preview of the palette is painted on.
+const studioStarterPalettes =
+    <
+      ({
+        String name,
+        String mood,
+        String shelf,
+        int background,
+        List<Color> colors,
+      })
+    >[
+      (
+        name: 'Riso Club',
+        mood: 'Fluoro inks on newsprint',
+        shelf: 'Loud',
+        background: 6,
+        colors: [
+          Color(0xFFFF48B0),
+          Color(0xFFFFE800),
+          Color(0xFF0078BF),
+          Color(0xFFFF6C2F),
+          Color(0xFF00A95C),
+          Color(0xFF765BA7),
+          Color(0xFFF3EDE2),
+          Color(0xFF1C1C1C),
+        ],
+      ),
+      (
+        name: 'Cutouts',
+        mood: 'Loud paper shapes',
+        shelf: 'Loud',
+        background: 5,
+        colors: [
+          Color(0xFF2346B8),
+          Color(0xFFF2B807),
+          Color(0xFFE2492F),
+          Color(0xFF1F8A5B),
+          Color(0xFFF4A7B9),
+          Color(0xFFF5EEDC),
+        ],
+      ),
+      (
+        name: 'Neon Arcade',
+        mood: 'Sunset neon after dark',
+        shelf: 'Loud',
+        background: 1,
+        colors: [
+          Color(0xFFFF2E88),
+          Color(0xFF2B1B5E),
+          Color(0xFFFF9E3D),
+          Color(0xFF00D1C1),
+          Color(0xFF7B5CFF),
+          Color(0xFFFFE66D),
+        ],
+      ),
+      (
+        name: 'Bauhaus',
+        mood: 'Three primaries and black',
+        shelf: 'Loud',
+        background: 4,
+        colors: [
+          Color(0xFFD62828),
+          Color(0xFFF7B801),
+          Color(0xFF1D4E89),
+          Color(0xFF111111),
+          Color(0xFFF1EDE4),
+        ],
+      ),
+      (
+        name: 'Citrus Stand',
+        mood: 'Squeezed this morning',
+        shelf: 'Fresh',
+        background: 4,
+        colors: [
+          Color(0xFFFF7A00),
+          Color(0xFFFFD23F),
+          Color(0xFFB5D33D),
+          Color(0xFF1F7A4D),
+          Color(0xFFFFF4D6),
+        ],
+      ),
+      (
+        name: 'Bubblegum',
+        mood: 'Candy with an inky outline',
+        shelf: 'Fresh',
+        background: 3,
+        colors: [
+          Color(0xFFFF7EB6),
+          Color(0xFF7FD6FF),
+          Color(0xFFFFE07A),
+          Color(0xFF3B2C5E),
+        ],
+      ),
+      (
+        name: 'Wildflower',
+        mood: 'A meadow in full bloom',
+        shelf: 'Fresh',
+        background: 7,
+        colors: [
+          Color(0xFFE94F64),
+          Color(0xFFF6C445),
+          Color(0xFF7A3E9D),
+          Color(0xFF3F7CC7),
+          Color(0xFFF49AC1),
+          Color(0xFFA7C957),
+          Color(0xFF4E7D3A),
+          Color(0xFFFFF4E3),
+        ],
+      ),
+      (
+        name: 'Deep Sea',
+        mood: 'Glowing in the dark',
+        shelf: 'Fresh',
+        background: 1,
+        colors: [
+          Color(0xFF00BFA6),
+          Color(0xFF071A2C),
+          Color(0xFF3A5BFF),
+          Color(0xFFB76CFF),
+          Color(0xFFFF5DA2),
+          Color(0xFFD5FFF4),
+        ],
+      ),
+      (
+        name: 'Matcha',
+        mood: 'Tea, rice paper, persimmon',
+        shelf: 'Calm',
+        background: 2,
+        colors: [
+          Color(0xFF7A9A3A),
+          Color(0xFFE8622E),
+          Color(0xFFF3E6C8),
+          Color(0xFF2F4858),
+          Color(0xFFD9A441),
+          Color(0xFF3B2A24),
+        ],
+      ),
+      (
+        name: 'Harvest',
+        mood: 'Pumpkin, mustard and plum',
+        shelf: 'Calm',
+        background: 5,
+        colors: [
+          Color(0xFFD9622B),
+          Color(0xFFE8A33D),
+          Color(0xFF8C2F1B),
+          Color(0xFF6B7F3A),
+          Color(0xFF7A1F3D),
+          Color(0xFFF5E6CC),
+        ],
+      ),
+      (
+        name: 'Signal',
+        mood: 'Quiet greys, one loud note',
+        shelf: 'Calm',
+        background: 3,
+        colors: [
+          Color(0xFFFF4F1F),
+          Color(0xFF1A1C22),
+          Color(0xFF8A8F99),
+          Color(0xFFF4F3EF),
+        ],
+      ),
+      (
+        name: 'Fjord',
+        mood: 'Cold water, red cabins',
+        shelf: 'Calm',
+        background: 5,
+        colors: [
+          Color(0xFF3D7EA6),
+          Color(0xFF1B3A4B),
+          Color(0xFF9BD1E5),
+          Color(0xFFE07A5F),
+          Color(0xFFF2CC8F),
+          Color(0xFFF4F1EA),
+        ],
+      ),
+    ];
 
-/// Generates a fresh, perceptually balanced 8-color palette seeded from a base hue.
-List<StudioColor> generateHarmoniousPalette(double seedHue) {
+/// Chooses a curated starter palette for a new studio.
+List<StudioColor> defaultStudioPalette({math.Random? random}) =>
+    studioStarterPaletteAt(random?.nextInt(studioStarterPalettes.length) ?? 0);
+
+List<StudioColor> studioStarterPaletteAt(int index) =>
+    studioStarterPalettes[index].colors.map(StudioColor.fromColor).toList();
+
+const maxStudioPaletteLength = 8;
+
+/// Generates a fresh, perceptually balanced palette seeded from a base hue.
+List<StudioColor> generateHarmoniousPalette(
+  double seedHue, {
+  int count = maxStudioPaletteLength,
+}) {
+  assert(count > 0 && count <= maxStudioPaletteLength);
   final rng = math.Random();
   final baseL = 56.0 + rng.nextDouble() * 10.0;
   final baseS = 78.0 + rng.nextDouble() * 18.0;
@@ -1030,7 +1127,7 @@ List<StudioColor> generateHarmoniousPalette(double seedHue) {
   ];
 
   return [
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < count; i++)
       StudioColor.fromHsluv(
         HSLuvColor.fromHSL(
           (seedHue + offsets[i]) % 360.0,

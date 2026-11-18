@@ -14,11 +14,12 @@ fetch_font JetBrainsMono.ttf "jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf"
 rm -rf build/readme_frames
 flutter test tool/render_readme_assets.dart
 
-src="build/readme_frames/oklch_vs_hsl_solid"
-scaled="build/readme_frames/oklch_vs_hsl_solid_960"
-mkdir -p "$scaled"
-ffmpeg -y -loglevel error -i "$src/frame_%04d.png" -vf "scale=960:-1:flags=lanczos" -pix_fmt rgba "$scaled/frame_%04d.png"
-img2webp -kmin 3 -kmax 4 -loop 0 -d 33 -lossy -q 84 -m 4 "$scaled"/frame_*.png -o "docs/screenshots/oklch_vs_hsl_solid.webp"
+src="build/readme_frames/lightness_rings"
+mkdir -p "${src}_960"
+ffmpeg -y -loglevel error -i "$src/frame_%04d.png" -vf "scale=960:-1:flags=lanczos" -pix_fmt rgba "${src}_960/frame_%04d.png"
+img2webp -kmin 3 -kmax 4 -loop 0 -d 33 -lossy -q 84 -m 4 "${src}_960"/frame_*.png -o docs/screenshots/lightness_rings.webp
+ffmpeg -y -loglevel error -i docs/screenshots/lightness_rings.png -vf "scale=960:-1:flags=lanczos" -frames:v 1 build/lightness_rings_960.png
+mv build/lightness_rings_960.png docs/screenshots/lightness_rings.png
 
 rm -rf build/readme_frames
-ls -lh docs/screenshots/oklch_vs_hsl_solid.webp
+ls -lh docs/screenshots/lightness_rings.*

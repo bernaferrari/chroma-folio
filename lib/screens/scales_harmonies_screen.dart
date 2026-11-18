@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import '../blocs/studio_cubit.dart';
 import '../models/accessibility_utils.dart';
 import '../models/color_spaces.dart';
+import '../widgets/palette_poster.dart';
 import '../widgets/studio_theme.dart';
 
 /// What the picked colour can become: its tonal scale and four harmonies
@@ -23,7 +24,11 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
         final cubit = context.read<StudioCubit>();
         final active = state.activeColor;
         final ramp = active.tonalRamp(state.activeSpace);
-        final chords = _buildHarmonyChords(active, state.activeSpace);
+        final chords = _buildHarmonyChords(
+          active,
+          state.activeSpace,
+          state.palette.length,
+        );
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -59,15 +64,11 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
                 const SizedBox(height: 22),
                 _SectionHeader(
                   title: 'Harmonies',
-                  trailing: Text(
-                    'Tap one to fill the palette',
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.fade,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: 12.5,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  trailing: TextButton.icon(
+                    onPressed: () =>
+                        _chooseStarterPalette(context, state.palette),
+                    icon: const Icon(Icons.palette_outlined, size: 16),
+                    label: const Text('Starter palettes', maxLines: 1),
                   ),
                 ),
                 Expanded(
@@ -94,6 +95,22 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
     );
   }
 
+  Future<void> _chooseStarterPalette(
+    BuildContext context,
+    List<StudioColor> current,
+  ) async {
+    final index = await showDialog<int>(
+      context: context,
+      builder: (_) => _StarterPaletteDialog(current: current),
+    );
+    if (!context.mounted || index == null) return;
+    HapticFeedback.selectionClick();
+    context.read<StudioCubit>().applyColorsToPalette(
+      studioStarterPaletteAt(index),
+      selectedIndex: 0,
+    );
+  }
+
   String _tailwindScale(
     List<({int token, Color color, double lightness})> ramp,
   ) {
@@ -107,6 +124,7 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
   List<_HarmonyChord> _buildHarmonyChords(
     StudioColor active,
     ColorSpaceMode space,
+    int count,
   ) {
     final channels = active.channelsFor(space);
     final baseHue = channels[0].value;
@@ -133,7 +151,7 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
             mix(0, 68, 0.40),
             mix(first, 83, 0.28),
             mix(0, 94, 0.16),
-          ],
+          ].take(count).toList(),
         );
 
     return [
@@ -142,6 +160,276 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
       harmony('Triadic', 120, 240),
       harmony('Split complementary', 150, 210),
     ];
+  }
+}
+
+class const _StarterPaletteDialog({required final List<StudioColor> current})
+    extends StatelessWidget {
+  static const _posterStyles = {
+    'Riso Club': PosterStyle.overprint,
+    'Cutouts': PosterStyle.arches,
+    'Neon Arcade': PosterStyle.sun,
+    'Bauhaus': PosterStyle.grid,
+    'Citrus Stand': PosterStyle.sun,
+    'Bubblegum': PosterStyle.grid,
+    'Wildflower': PosterStyle.overprint,
+    'Deep Sea': PosterStyle.arches,
+    'Matcha': PosterStyle.arches,
+    'Harvest': PosterStyle.sun,
+    'Signal': PosterStyle.grid,
+    'Fjord': PosterStyle.overprint,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final currentHexes = current.map((c) => c.color.toARGB32()).toList();
+    final shelves = <String, List<int>>{};
+    for (final (index, starter) in studioStarterPalettes.indexed) {
+      (shelves[starter.shelf] ??= []).add(index);
+    }
+
+    return Dialog(
+      backgroundColor: scheme.surface,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Starter palettes',
+                            style: studioDisplayStyle(
+                              context,
+                              fontSize: 30,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Each one replaces your palette. Undo brings yours back.',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontSize: 12.5,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 12, 12),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      const gap = 14.0;
+                      final width = constraints.maxWidth;
+                      final columns = width >= 600 ? 4 : 2;
+                      final tileWidth = (width - gap * (columns - 1)) / columns;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final (i, MapEntry(key: shelf, value: indexes))
+                              in shelves.entries.indexed) ...[
+                            if (i > 0) const SizedBox(height: 22),
+                            Text(
+                              shelf.toUpperCase(),
+                              style: studioMonoStyle(
+                                context,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurfaceVariant,
+                              ).copyWith(letterSpacing: 1.4),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: gap,
+                              runSpacing: 18,
+                              children: [
+                                for (final index in indexes)
+                                  SizedBox(
+                                    width: tileWidth,
+                                    child: _starterCard(
+                                      context,
+                                      index,
+                                      currentHexes,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _starterCard(BuildContext context, int index, List<int> current) {
+    final starter = studioStarterPalettes[index];
+    return _StarterCard(
+      name: starter.name,
+      mood: starter.mood,
+      selected: _matches(starter.colors, current),
+      semanticLabel:
+          'Use the ${starter.name} palette, ${starter.colors.length} colours',
+      onTap: () => Navigator.of(context).pop(index),
+      poster: PalettePoster(
+        colors: starter.colors,
+        background: starter.background,
+        style:
+            _posterStyles[starter.name] ??
+            PosterStyle.values[index % PosterStyle.values.length],
+      ),
+    );
+  }
+
+  static bool _matches(List<Color> colors, List<int> current) =>
+      colors.length == current.length &&
+      colors.indexed.every((entry) => entry.$2.toARGB32() == current[entry.$1]);
+}
+
+/// A starter palette as a poster with its name underneath; no frame, so the
+/// colours do the talking.
+class const _StarterCard({
+  required final String name,
+  required final String mood,
+  required final Widget poster,
+  required final String semanticLabel,
+  required final VoidCallback onTap,
+  final bool selected = false,
+}) extends StatefulWidget {
+  @override
+  State<_StarterCard> createState() => _StarterCardState();
+}
+
+class _StarterCardState extends State<_StarterCard> {
+  static const _radius = 18.0;
+  static const _ringGap = 3.0;
+
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ring = widget.selected
+        ? scheme.onSurface
+        : scheme.onSurface.withValues(alpha: _hovered ? 0.14 : 0);
+
+    return Semantics(
+      button: true,
+      selected: widget.selected,
+      label: widget.semanticLabel,
+      excludeSemantics: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapCancel: () => setState(() => _pressed = false),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTap: widget.onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AnimatedScale(
+                scale: _pressed
+                    ? 0.97
+                    : _hovered
+                    ? 1.015
+                    : 1.0,
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.all(_ringGap),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(_radius + _ringGap),
+                    border: Border.all(color: ring, width: 1.5),
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 1.5,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(_radius),
+                      child: widget.poster,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: studioDisplayStyle(
+                          context,
+                          fontSize: 19,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                    if (widget.selected)
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 15,
+                        color: scheme.onSurface,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  widget.mood,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(fontSize: 12, color: scheme.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -249,6 +537,13 @@ class const _HarmonyChordsGrid({
   required final List<_HarmonyChord> chords,
   required final ValueChanged<_HarmonyChord> onPourChord,
 }) extends StatelessWidget {
+  Widget _chordCard(_HarmonyChord chord) => _PaletteCard(
+    title: chord.title,
+    colors: [for (final swatch in chord.colors) swatch.color],
+    semanticLabel: 'Fill the palette with ${chord.title} colours',
+    onTap: () => onPourChord(chord),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -256,19 +551,9 @@ class const _HarmonyChordsGrid({
         Expanded(
           child: Row(
             children: [
-              Expanded(
-                child: _HarmonyChordCard(
-                  chord: chords[0],
-                  onTap: () => onPourChord(chords[0]),
-                ),
-              ),
+              Expanded(child: _chordCard(chords[0])),
               const SizedBox(width: 12),
-              Expanded(
-                child: _HarmonyChordCard(
-                  chord: chords[1],
-                  onTap: () => onPourChord(chords[1]),
-                ),
-              ),
+              Expanded(child: _chordCard(chords[1])),
             ],
           ),
         ),
@@ -276,19 +561,9 @@ class const _HarmonyChordsGrid({
         Expanded(
           child: Row(
             children: [
-              Expanded(
-                child: _HarmonyChordCard(
-                  chord: chords[2],
-                  onTap: () => onPourChord(chords[2]),
-                ),
-              ),
+              Expanded(child: _chordCard(chords[2])),
               const SizedBox(width: 12),
-              Expanded(
-                child: _HarmonyChordCard(
-                  chord: chords[3],
-                  onTap: () => onPourChord(chords[3]),
-                ),
-              ),
+              Expanded(child: _chordCard(chords[3])),
             ],
           ),
         ),
@@ -297,26 +572,31 @@ class const _HarmonyChordsGrid({
   }
 }
 
-class const _HarmonyChordCard({
-  required final _HarmonyChord chord,
+/// A palette as a mosaic: the lead colour large, its partners beside it and
+/// the rest of the swatches in a strip underneath.
+class const _PaletteCard({
+  required final String title,
+  required final List<Color> colors,
+  required final String semanticLabel,
   required final VoidCallback onTap,
 }) extends StatefulWidget {
   @override
-  State<_HarmonyChordCard> createState() => _HarmonyChordCardState();
+  State<_PaletteCard> createState() => _PaletteCardState();
 }
 
-class _HarmonyChordCardState extends State<_HarmonyChordCard> {
+class _PaletteCardState extends State<_PaletteCard> {
   bool _hovered = false;
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final chord = widget.chord;
+    final colors = widget.colors;
+    final borderAlpha = _hovered ? 0.16 : 0.07;
 
     return Semantics(
       button: true,
-      label: 'Fill the palette with ${chord.title} colours',
+      label: widget.semanticLabel,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _hovered = true),
@@ -337,9 +617,7 @@ class _HarmonyChordCardState extends State<_HarmonyChordCard> {
                 color: scheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: scheme.onSurface.withValues(
-                    alpha: _hovered ? 0.16 : 0.07,
-                  ),
+                  color: scheme.onSurface.withValues(alpha: borderAlpha),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -347,7 +625,7 @@ class _HarmonyChordCardState extends State<_HarmonyChordCard> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    chord.title,
+                    widget.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: studioDisplayStyle(context, fontSize: 21, height: 1),
@@ -368,29 +646,26 @@ class _HarmonyChordCardState extends State<_HarmonyChordCard> {
                                 children: [
                                   Expanded(
                                     flex: 3,
-                                    child: ColoredBox(
-                                      color: chord.colors[0].color,
-                                    ),
+                                    child: ColoredBox(color: colors[0]),
                                   ),
-                                  for (final swatch
-                                      in chord.colors.skip(1).take(2))
-                                    Expanded(
-                                      child: ColoredBox(color: swatch.color),
-                                    ),
+                                  for (final swatch in colors.skip(1).take(2))
+                                    Expanded(child: ColoredBox(color: swatch)),
                                 ],
                               ),
                             ),
-                            Expanded(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (final swatch in chord.colors.skip(3))
-                                    Expanded(
-                                      child: ColoredBox(color: swatch.color),
-                                    ),
-                                ],
+                            if (colors.length > 3)
+                              Expanded(
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    for (final swatch in colors.skip(3))
+                                      Expanded(
+                                        child: ColoredBox(color: swatch),
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -414,8 +689,8 @@ class const _SectionHeader({
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 0, 6, 10),
-      child: SizedBox(
-        height: 32,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 32),
         child: Row(
           children: [
             Text(

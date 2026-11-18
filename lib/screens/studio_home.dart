@@ -1,15 +1,19 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../blocs/studio_cubit.dart';
 import '../models/color_spaces.dart';
+import '../widgets/github_mark.dart';
 import '../widgets/specimen_stage.dart';
 import '../widgets/studio_theme.dart';
 import 'picker_screen.dart';
 import 'gamut_solid_screen.dart';
 import 'scales_harmonies_screen.dart';
 import 'space_comparison_screen.dart';
+
+const _repositoryUrl = 'https://github.com/bernaferrari/chroma-folio';
 
 enum _Lens { reels, spectrum, solid, palette }
 
@@ -259,24 +263,35 @@ class const _HistoryAndThemeActions() extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         StudioIconButton(
-          icon: Icons.undo_rounded,
+          icon: const Icon(Icons.undo_rounded),
           tooltip: 'Undo',
           onTap: canUndo ? cubit.undo : null,
         ),
         const SizedBox(width: 4),
         StudioIconButton(
-          icon: Icons.redo_rounded,
+          icon: const Icon(Icons.redo_rounded),
           tooltip: 'Redo',
           onTap: canRedo ? cubit.redo : null,
         ),
         const SizedBox(width: 4),
         StudioIconButton(
-          icon: isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+          icon: Icon(
+            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+          ),
           tooltip: isDark ? 'Light theme' : 'Dark theme',
           onTap: () {
             HapticFeedback.selectionClick();
             cubit.toggleThemeMode();
           },
+        ),
+        const SizedBox(width: 4),
+        StudioIconButton(
+          icon: const GithubMark(),
+          tooltip: 'Chroma Folio on GitHub',
+          onTap: () => launchUrl(
+            Uri.parse(_repositoryUrl),
+            mode: LaunchMode.externalApplication,
+          ),
         ),
       ],
     );

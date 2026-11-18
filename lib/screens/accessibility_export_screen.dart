@@ -350,7 +350,7 @@ class const _CvdSimulatorCard({
               ),
             ),
             Text(
-              'Verify your entire 8-color palette remains distinguishable across color vision profiles',
+              'Verify your entire ${palette.length}-color palette remains distinguishable across color vision profiles',
               style: textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
