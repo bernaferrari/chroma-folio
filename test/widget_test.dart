@@ -309,6 +309,51 @@ void main() {
       expect(cubit.state.activeColor.hsluv.lightness, lowered.lightness);
     });
 
+    testWidgets('a solid color drag follows the rim outside the slice', (
+      tester,
+    ) async {
+      final cubit = await pumpStudio(tester);
+      final before = StudioColor.fromSpace(
+        ColorSpaceMode.hsluv,
+        hue: 90,
+        saturationPct: 50,
+        lightnessPct: 50,
+      );
+      cubit.setActiveColor(before, recordHistory: false);
+      await tester.tap(find.text('Solid'));
+      await tester.pumpAndSettle();
+      final solid = find.byKey(const ValueKey<String>('gamut_solid_canvas'));
+      final center = tester.getCenter(solid);
+      final outsideX = tester.getSize(solid).width / 2 + 20;
+
+      final drag = await tester.startGesture(center + const Offset(0, 20));
+      await drag.moveTo(center + const Offset(40, 0));
+      await drag.moveTo(center + Offset(outsideX, 0));
+      await tester.pump();
+      final right = cubit.state.activeColor.hsluv;
+      expect(right.saturation, closeTo(100, 0.01));
+      expect(isOnBand(right.hue, 360), isTrue);
+
+      await drag.moveTo(center - Offset(outsideX, 0));
+      await tester.pump();
+      final left = cubit.state.activeColor.hsluv;
+      expect(left.saturation, closeTo(100, 0.01));
+      expect(left.hue, closeTo(180, 0.01));
+      expect(left.lightness, closeTo(50, 0.01));
+
+      await drag.moveTo(center - const Offset(40, 0));
+      await drag.up();
+      await tester.pumpAndSettle();
+      expect(
+        cubit.state.activeColor.hsluv.saturation,
+        inExclusiveRange(0, 100),
+      );
+
+      cubit.undo();
+      expect(cubit.state.activeColor, before);
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('the solid retargets its morph and zooms with the wheel', (
       tester,
     ) async {

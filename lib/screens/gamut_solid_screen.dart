@@ -159,27 +159,28 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     _zoom.value = 1;
   }
 
-  /// The colour on the cut face under [position], if there is one.
-  StudioColor? _colorOnSlice(Offset position) {
+  /// Picks under [position], or follows the rim during an active colour drag.
+  StudioColor? _colorOnSlice(Offset position, {bool followRim = false}) {
     final state = _cubit.state;
     final space = state.activeSpace;
     final lightness = state.activeColor.channelsFor(space)[2].value;
-    final (hue, distance) = _camera.onLevel(position, lightness);
+    final camera = _camera;
+    var (hue, distance) = camera.onLevel(position, lightness);
     final reach = chromaReach(space, hue: hue, lightnessPct: lightness);
     if (reach <= 1e-4) return null;
-    final share = distance / (reach * _Camera.radius);
-    if (share > _pickSlack) return null;
+    var share = distance / (reach * _Camera.radius);
+    if (followRim && share > 1) {
+      hue = camera.nearestRimHue(position, _targetFrame.slice.reach, lightness);
+      share = 1;
+    } else if (share > _pickSlack) {
+      return null;
+    }
     return StudioColor.fromSpace(
       space,
       hue: hue,
       saturationPct: share * 100,
       lightnessPct: lightness,
     );
-  }
-
-  void _pickAt(Offset position) {
-    final color = _colorOnSlice(position);
-    if (color != null) _cubit.setActiveColor(color, recordHistory: false);
   }
 
   void _handlePointerDown(PointerDownEvent event) {
@@ -207,13 +208,14 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     _finishMorph();
     final start = _pointerStart ?? details.localFocalPoint;
     _lastFocalPoint = start;
-    if (_colorOnSlice(start) == null) {
+    final color = _colorOnSlice(start);
+    if (color == null) {
       _grab = _Grab.undecided;
       return;
     }
     _grab = _Grab.pick;
     _cubit.beginScrub();
-    _pickAt(start);
+    _cubit.setActiveColor(color, recordHistory: false);
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
@@ -249,7 +251,8 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
           (lightness + _camera.liftFor(delta.dy)).clamp(0.0, 100.0),
         );
       case _Grab.pick:
-        _pickAt(details.localFocalPoint);
+        final color = _colorOnSlice(details.localFocalPoint, followRim: true);
+        if (color != null) _cubit.setActiveColor(color, recordHistory: false);
     }
   }
 
@@ -490,6 +493,43 @@ class _Camera({
       (hue % 360 + 360) % 360,
       math.sqrt(across * across + towards * towards),
     );
+  }
+
+  /// Finds the closest point along the projected slice outline.
+  double nearestRimHue(
+    Offset position,
+    Float32List reach,
+    double lightnessPct,
+  ) {
+    Offset vertex(int column) {
+      final (x, y, _) = project(
+        _SolidMesh.hueOf(column),
+        reach[column] * radius,
+        lightnessPct,
+      );
+      return Offset(x, y);
+    }
+
+    var start = vertex(reach.length - 1);
+    var nearest = start;
+    var nearestDistanceSquared = (position - start).distanceSquared;
+    for (var column = 0; column < reach.length; column++) {
+      final end = vertex(column);
+      final edge = end - start;
+      final lengthSquared = edge.distanceSquared;
+      if (lengthSquared > 0) {
+        final delta = position - start;
+        final t = (delta.dx * edge.dx + delta.dy * edge.dy) / lengthSquared;
+        final candidate = start + edge * t.clamp(0.0, 1.0);
+        final distanceSquared = (position - candidate).distanceSquared;
+        if (distanceSquared < nearestDistanceSquared) {
+          nearest = candidate;
+          nearestDistanceSquared = distanceSquared;
+        }
+      }
+      start = end;
+    }
+    return onLevel(nearest, lightnessPct).$1;
   }
 
   /// Yaw change that makes the front of the solid follow [pixels] sideways.
