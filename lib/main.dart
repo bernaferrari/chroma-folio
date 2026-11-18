@@ -3,10 +3,13 @@ import 'package:material_ui/material_ui.dart';
 
 import 'blocs/studio_cubit.dart';
 import 'screens/studio_home.dart';
+import 'studio_palette_store.dart';
 import 'widgets/studio_theme.dart';
 
-void main() {
-  runApp(const StudioApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cubit = await StudioPaletteStore.local().open();
+  runApp(StudioApp(cubit: cubit));
 }
 
 /// Root Material 3 Perceptual Color Studio application showcasing

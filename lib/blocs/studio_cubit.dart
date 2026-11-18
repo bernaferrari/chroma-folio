@@ -16,10 +16,10 @@ class const StudioState({
   required final List<List<StudioColor>> redoStack,
   final int shuffleRevision = 0,
 }) extends Equatable {
-  factory initial() {
+  factory initial({List<StudioColor>? palette, int selectedIndex = 0}) {
     return StudioState(
-      palette: defaultStudioPalette(),
-      selectedIndex: 0,
+      palette: palette ?? defaultStudioPalette(),
+      selectedIndex: selectedIndex,
       activeSpace: ColorSpaceMode.hsluv,
       themeMode: ThemeMode.light,
       undoStack: const [],
@@ -63,8 +63,8 @@ class const StudioState({
   ];
 }
 
-class StudioCubit() extends Cubit<StudioState> {
-  this : super(StudioState.initial());
+class StudioCubit({StudioState? initialState}) extends Cubit<StudioState> {
+  this : super(initialState ?? StudioState.initial());
 
   List<StudioColor>? _scrubSnapshot;
   static const int _maxHistory = 30;

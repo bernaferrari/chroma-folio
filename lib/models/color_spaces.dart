@@ -906,19 +906,100 @@ Color sampleAcrossSpace(
   };
 }
 
-/// Initial curated high-craft 8-color studio palette.
-List<StudioColor> defaultStudioPalette() {
-  const seeds = [
-    Color(0xFF3B82F6), // Perceptual Blue
-    Color(0xFFF97316), // Vivid Orange
-    Color(0xFF10B981), // Emerald Mint
-    Color(0xFFEC4899), // Berry Rose
-    Color(0xFF8B5CF6), // Electric Violet
-    Color(0xFFEAB308), // Solar Amber
-    Color(0xFF06B6D4), // Cyan Tide
-    Color(0xFF1E293B), // Deep Slate
+/// Chooses a curated eight-swatch palette for a new studio.
+List<StudioColor> defaultStudioPalette({math.Random? random}) {
+  const palettes = [
+    // Bright spectrum
+    [
+      Color(0xFF3B82F6),
+      Color(0xFFF97316),
+      Color(0xFF10B981),
+      Color(0xFFEC4899),
+      Color(0xFF8B5CF6),
+      Color(0xFFEAB308),
+      Color(0xFF06B6D4),
+      Color(0xFF1E293B),
+    ],
+    // Desert sunset
+    [
+      Color(0xFFE76F51),
+      Color(0xFFA95452),
+      Color(0xFFF4A261),
+      Color(0xFFE9C46A),
+      Color(0xFFB99B80),
+      Color(0xFFF7E5D1),
+      Color(0xFF8C6B55),
+      Color(0xFF48363B),
+    ],
+    // Tidal pool
+    [
+      Color(0xFF168C80),
+      Color(0xFF5DC9B2),
+      Color(0xFF81D4DA),
+      Color(0xFF4189A2),
+      Color(0xFF226478),
+      Color(0xFFC2DED4),
+      Color(0xFFEDE7D5),
+      Color(0xFF163B43),
+    ],
+    // Wisteria
+    [
+      Color(0xFF7D5AC2),
+      Color(0xFFAC91D8),
+      Color(0xFFD6C6EB),
+      Color(0xFF6064AE),
+      Color(0xFF888EBB),
+      Color(0xFFCE90B7),
+      Color(0xFFF3E4EF),
+      Color(0xFF362C53),
+    ],
+    // Botanical
+    [
+      Color(0xFF48734F),
+      Color(0xFF81A979),
+      Color(0xFFA9C853),
+      Color(0xFFBDC58B),
+      Color(0xFFDDE5C8),
+      Color(0xFFC88753),
+      Color(0xFFF1E9D7),
+      Color(0xFF344439),
+    ],
+    // Rosewater
+    [
+      Color(0xFFCD5E89),
+      Color(0xFFDD789E),
+      Color(0xFFE6A3B4),
+      Color(0xFFF4CBD0),
+      Color(0xFFB84FA1),
+      Color(0xFF945877),
+      Color(0xFFFFE8DB),
+      Color(0xFF4B2E40),
+    ],
+    // Blue hour
+    [
+      Color(0xFF5476B1),
+      Color(0xFF79B7E7),
+      Color(0xFF3E63DD),
+      Color(0xFF96AACB),
+      Color(0xFFBFD0E5),
+      Color(0xFFE0D8F0),
+      Color(0xFFF0EEE9),
+      Color(0xFF242D50),
+    ],
+    // Marigold
+    [
+      Color(0xFFBC9238),
+      Color(0xFFD3A72A),
+      Color(0xFFE7BF58),
+      Color(0xFFF4D992),
+      Color(0xFFE4A373),
+      Color(0xFF8C7950),
+      Color(0xFFF6EED7),
+      Color(0xFF52452E),
+    ],
   ];
-  return seeds.map(StudioColor.fromColor).toList();
+  final palette = palettes[random?.nextInt(palettes.length) ?? 0];
+  return palette.map(StudioColor.fromColor).toList();
 }
 
 /// Generates a fresh, perceptually balanced 8-color palette seeded from a base hue.
