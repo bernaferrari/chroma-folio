@@ -621,14 +621,82 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('50'), findsOneWidget);
       expect(find.text('950'), findsOneWidget);
-      for (final label in ['Tailwind', 'Hex', 'CSS', 'Flutter']) {
+      expect(find.text('Copy palette'), findsNothing);
+      await tester.tap(find.text('Copy'));
+      await tester.pumpAndSettle();
+      for (final label in [
+        'Hex',
+        'CSS · OKLCH',
+        'CSS · Display P3',
+        'Flutter',
+        'Tailwind',
+      ]) {
         expect(find.text(label), findsOneWidget);
       }
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
 
       final before = cubit.state.palette.map((c) => c.hex).toList();
       await tester.tap(find.text('Triadic'));
       await tester.pumpAndSettle();
       expect(cubit.state.palette.map((c) => c.hex).toList(), isNot(before));
+    });
+
+    Rect scaleStep(WidgetTester tester, String token) => tester.getRect(
+      find
+          .ancestor(of: find.text(token), matching: find.byType(DecoratedBox))
+          .first,
+    );
+
+    testWidgets('a tapped scale step stands apart from its neighbours', (
+      tester,
+    ) async {
+      await pumpStudio(tester);
+      await tester.tap(find.text('Palette'));
+      await tester.pumpAndSettle();
+      expect(
+        scaleStep(tester, '900').left,
+        closeTo(scaleStep(tester, '800').right, 0.01),
+      );
+
+      await tester.tap(find.text('900'));
+      await tester.pumpAndSettle();
+      expect(
+        scaleStep(tester, '900').left,
+        greaterThan(scaleStep(tester, '800').right + 3),
+      );
+      expect(
+        scaleStep(tester, '950').left,
+        greaterThan(scaleStep(tester, '900').right + 3),
+      );
+    });
+
+    testWidgets('sliding across the scale scrubs as one undo step', (
+      tester,
+    ) async {
+      final cubit = await pumpStudio(tester);
+      await tester.tap(find.text('Palette'));
+      await tester.pumpAndSettle();
+      final before = cubit.state.palette;
+      final undoDepth = cubit.state.undoStack.length;
+
+      final from = tester.getCenter(find.text('100'));
+      final to = tester.getCenter(find.text('950'));
+      final gesture = await tester.startGesture(from);
+      for (var i = 1; i <= 12; i++) {
+        await gesture.moveTo(Offset.lerp(from, to, i / 12)!);
+        await tester.pump();
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.undoStack, hasLength(undoDepth + 1));
+      expect(
+        scaleStep(tester, '950').left,
+        greaterThan(scaleStep(tester, '900').right + 3),
+      );
+      cubit.undo();
+      expect(cubit.state.palette, before);
     });
 
     testWidgets('a starter palette can be previewed, applied, and undone', (
@@ -689,9 +757,9 @@ void main() {
       final cubit = await pumpStudio(tester);
       await tester.tap(find.text('Palette'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('CSS'));
+      await tester.tap(find.text('Copy'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Display P3'));
+      await tester.tap(find.text('CSS · Display P3'));
       await tester.pumpAndSettle();
 
       expect(
@@ -834,11 +902,10 @@ void main() {
       await tester.ensureVisible(tab('Palette'));
       await tester.tap(tab('Palette'));
       await tester.pumpAndSettle();
-      final copy = find.text('Copy palette').hitTestable();
-      expect(copy, findsNothing);
+      final lastHarmony = find.text('Split complementary').hitTestable();
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
       await tester.pumpAndSettle();
-      expect(copy, findsOneWidget);
+      expect(lastHarmony, findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

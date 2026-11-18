@@ -42,14 +42,7 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
               children: [
                 _SectionHeader(
                   title: 'Scale',
-                  trailing: _CopyChip(
-                    label: 'Tailwind',
-                    onTap: () => copyWithFeedback(
-                      context,
-                      _tailwindScale(ramp),
-                      label: 'Tailwind scale',
-                    ),
-                  ),
+                  trailing: _CopyMenu(palette: state.palette, ramp: ramp),
                 ),
                 SizedBox(
                   height: isShort ? 84 : 128,
@@ -62,6 +55,15 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
                       HapticFeedback.selectionClick();
                       cubit.setActiveColor(StudioColor.fromColor(color));
                     },
+                    onScrubStart: cubit.beginScrub,
+                    onScrubStep: (color) {
+                      HapticFeedback.selectionClick();
+                      cubit.setActiveColor(
+                        StudioColor.fromColor(color),
+                        recordHistory: false,
+                      );
+                    },
+                    onScrubEnd: cubit.endScrub,
                   ),
                 ),
                 const SizedBox(height: 22),
@@ -84,8 +86,6 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
-                _CopyPaletteBar(palette: state.palette),
               ],
             );
             return CustomScrollView(
@@ -113,16 +113,6 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
       studioStarterPaletteAt(index),
       selectedIndex: 0,
     );
-  }
-
-  String _tailwindScale(
-    List<({int token, Color color, double lightness})> ramp,
-  ) {
-    final entries = [
-      for (final stop in ramp)
-        "  '${stop.token}': '${StudioColor.fromColor(stop.color).hex}',",
-    ].join('\n');
-    return 'primary: {\n$entries\n}';
   }
 
   List<_HarmonyChord> _buildHarmonyChords(
@@ -468,102 +458,174 @@ class _PosterCardState extends State<_PosterCard> {
   }
 }
 
+/// The tonal scale as a strip of paint, drawn like the palette tray: the
+/// steps touch, except the picked one, which stands apart as its own chip.
+///
+/// Tapping a step picks it; sliding across the strip scrubs through the
+/// steps as one undoable change.
 class const _TonalRampRibbon({
   required final List<({int token, Color color, double lightness})> ramp,
   required final double activeLightness,
   required final ValueChanged<Color> onSelectStep,
-}) extends StatelessWidget {
+  required final VoidCallback onScrubStart,
+  required final ValueChanged<Color> onScrubStep,
+  required final VoidCallback onScrubEnd,
+}) extends StatefulWidget {
+  @override
+  State<_TonalRampRibbon> createState() => _TonalRampRibbonState();
+}
+
+class _TonalRampRibbonState extends State<_TonalRampRibbon> {
+  static const Duration _glide = Duration(milliseconds: 220);
+
+  int? _scrubbedIndex;
+
+  int _indexAt(double dx, double width) {
+    final fraction = (dx / width).clamp(0.0, 0.9999);
+    return (fraction * widget.ramp.length).floor();
+  }
+
+  void _scrubTo(double dx, double width) {
+    final index = _indexAt(dx, width);
+    if (index == _scrubbedIndex) return;
+    _scrubbedIndex = index;
+    widget.onScrubStep(widget.ramp[index].color);
+  }
+
+  void _endScrub() {
+    if (_scrubbedIndex == null) return;
+    _scrubbedIndex = null;
+    widget.onScrubEnd();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ramp = widget.ramp;
     var closestIdx = 0;
     var bestDiff = double.infinity;
     for (int i = 0; i < ramp.length; i++) {
-      final diff = (ramp[i].lightness - activeLightness).abs();
+      final diff = (ramp[i].lightness - widget.activeLightness).abs();
       if (diff < bestDiff) {
         bestDiff = diff;
         closestIdx = i;
       }
     }
+    final glide = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : _glide;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (int i = 0; i < ramp.length; i++)
-            Expanded(
-              child: _TonalBand(
-                token: ramp[i].token,
-                color: ramp[i].color,
-                isClosest: i == closestIdx,
-                onTap: () => onSelectStep(ramp[i].color),
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final narrow = width / ramp.length < 52;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (details) => widget.onSelectStep(
+              ramp[_indexAt(details.localPosition.dx, width)].color,
             ),
-        ],
+            onHorizontalDragStart: (details) {
+              widget.onScrubStart();
+              _scrubbedIndex = closestIdx;
+              _scrubTo(details.localPosition.dx, width);
+            },
+            onHorizontalDragUpdate: (details) =>
+                _scrubTo(details.localPosition.dx, width),
+            onHorizontalDragEnd: (_) => _endScrub(),
+            onHorizontalDragCancel: _endScrub,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (int i = 0; i < ramp.length; i++)
+                  Expanded(
+                    child: _TonalBand(
+                      token: ramp[i].token,
+                      color: ramp[i].color,
+                      isClosest: i == closestIdx,
+                      gapBefore:
+                          i > 0 && (i == closestIdx || i - 1 == closestIdx),
+                      gapAfter:
+                          i < ramp.length - 1 &&
+                          (i == closestIdx || i + 1 == closestIdx),
+                      halfGap: narrow ? 2 : 3,
+                      duration: glide,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
+/// One step of the tonal scale.
+///
+/// A gap opens on each side that borders the picked step, and the corners
+/// beside a gap are rounded.
 class const _TonalBand({
   required final int token,
   required final Color color,
   required final bool isClosest,
-  required final VoidCallback onTap,
-}) extends StatelessWidget {
+  required final bool gapBefore,
+  required final bool gapAfter,
+  required final double halfGap,
+  required final Duration duration,
+}) extends StatefulWidget {
+  @override
+  State<_TonalBand> createState() => _TonalBandState();
+}
+
+class _TonalBandState extends State<_TonalBand> {
+  static const Radius _chipCorner = Radius.circular(16);
+  static const Radius _neighbourCorner = Radius.circular(7);
+
+  bool _hovered = false;
+
   @override
   Widget build(BuildContext context) {
-    final ink = contrastingTextColor(color);
+    final ink = contrastingTextColor(widget.color);
+    final corner = widget.isClosest ? _chipCorner : _neighbourCorner;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: ColoredBox(
-          color: color,
-          child: LayoutBuilder(
-            builder: (context, constraints) =>
-                _lens(context, ink, narrow: constraints.maxWidth < 52),
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: widget.duration,
+        curve: Curves.easeOutCubic,
+        margin: EdgeInsets.only(
+          left: widget.gapBefore ? widget.halfGap : 0,
+          right: widget.gapAfter ? widget.halfGap : 0,
+        ),
+        decoration: BoxDecoration(
+          color: widget.color,
+          borderRadius: BorderRadius.horizontal(
+            left: widget.gapBefore || widget.isClosest ? corner : Radius.zero,
+            right: widget.gapAfter || widget.isClosest ? corner : Radius.zero,
+          ),
+        ),
+        alignment: Alignment.bottomCenter,
+        padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: AnimatedDefaultTextStyle(
+            duration: widget.duration,
+            style: studioMonoStyle(
+              context,
+              fontSize: 10.5,
+              fontWeight: widget.isClosest ? FontWeight.w700 : FontWeight.w600,
+              color: ink.withValues(
+                alpha: widget.isClosest || _hovered ? 0.98 : 0.72,
+              ),
+            ),
+            child: Text('${widget.token}', maxLines: 1),
           ),
         ),
       ),
     );
   }
-
-  Widget _lens(BuildContext context, Color ink, {required bool narrow}) =>
-      Container(
-        // The same white lens that marks the picked band on the reels.
-        margin: EdgeInsets.all(narrow ? 2 : 5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: isClosest
-              ? Border.all(color: Colors.white, width: 2.5)
-              : null,
-          boxShadow: isClosest
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    blurRadius: 1.5,
-                  ),
-                ]
-              : null,
-          color: isClosest ? color : null,
-        ),
-        alignment: Alignment.bottomCenter,
-        padding: const EdgeInsets.fromLTRB(2, 0, 2, 5),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            '$token',
-            maxLines: 1,
-            style: studioMonoStyle(
-              context,
-              fontSize: 10.5,
-              fontWeight: isClosest ? FontWeight.w700 : FontWeight.w600,
-              color: ink.withValues(alpha: isClosest ? 0.98 : 0.72),
-            ),
-          ),
-        ),
-      );
 }
 
 class const _HarmonyChord({
@@ -783,9 +845,12 @@ class const _SectionHeader({
   }
 }
 
-/// One quiet row offering the palette in each code format.
-class const _CopyPaletteBar({required final List<StudioColor> palette})
-    extends StatelessWidget {
+/// Everything the tab can hand over as code, behind one quiet menu: the
+/// palette in each format, and the picked colour's scale.
+class const _CopyMenu({
+  required final List<StudioColor> palette,
+  required final List<({int token, Color color, double lightness})> ramp,
+}) extends StatelessWidget {
   String get _hexList => palette.map((c) => c.hex).join(', ');
 
   String _cssVariables({required bool displayP3}) {
@@ -814,120 +879,78 @@ class const _CopyPaletteBar({required final List<StudioColor> palette})
     return 'const palette = <Color>[\n$entries\n];';
   }
 
+  String get _tailwindScale {
+    final entries = [
+      for (final stop in ramp)
+        "  '${stop.token}': '${StudioColor.fromColor(stop.color).hex}',",
+    ].join('\n');
+    return 'primary: {\n$entries\n}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: scheme.onSurface.withValues(alpha: 0.07)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Copy palette',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          _CopyChip(
-            label: 'Hex',
-            onTap: () => copyWithFeedback(context, _hexList, label: 'hex'),
-          ),
-          const SizedBox(width: 6),
-          PopupMenuButton<bool>(
-            tooltip: 'Copy CSS palette',
-            onSelected: (displayP3) => copyWithFeedback(
-              context,
-              _cssVariables(displayP3: displayP3),
-              label: displayP3 ? 'Display P3 CSS' : 'OKLCH CSS',
-            ),
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: false, child: Text('OKLCH')),
-              PopupMenuItem(value: true, child: Text('Display P3')),
-            ],
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text('CSS'),
-            ),
-          ),
-          const SizedBox(width: 6),
-          _CopyChip(
-            label: 'Flutter',
-            onTap: () => copyWithFeedback(
-              context,
-              _flutterList,
-              label: 'Flutter colours',
-            ),
-          ),
-        ],
+    final sampleStyle = studioMonoStyle(
+      context,
+      fontSize: 11.5,
+      color: scheme.onSurfaceVariant,
+    );
+
+    Widget group(String label) => Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+      child: Text(
+        label.toUpperCase(),
+        style: studioMonoStyle(
+          context,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurfaceVariant,
+        ).copyWith(letterSpacing: 1.4),
       ),
     );
-  }
-}
 
-class const _CopyChip({
-  required final String label,
-  required final VoidCallback onTap,
-}) extends StatefulWidget {
-  @override
-  State<_CopyChip> createState() => _CopyChipState();
-}
+    Widget format(String name, String sample, String Function() code) =>
+        MenuItemButton(
+          onPressed: () => copyWithFeedback(context, code(), label: name),
+          trailingIcon: Text(sample, style: sampleStyle),
+          child: SizedBox(width: 132, child: Text(name)),
+        );
 
-class _CopyChipState extends State<_CopyChip> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      button: true,
-      label: 'Copy ${widget.label}',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            height: 32,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: scheme.onSurface.withValues(alpha: _hovered ? 0.12 : 0.06),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.copy_rounded,
-                  size: 13,
-                  color: scheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  widget.label,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return MenuAnchor(
+      alignmentOffset: const Offset(0, 6),
+      style: MenuStyle(
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(vertical: 6),
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      menuChildren: [
+        group('Palette'),
+        format('Hex', palette.first.hex, () => _hexList),
+        format('CSS · OKLCH', 'oklch()', () => _cssVariables(displayP3: false)),
+        format(
+          'CSS · Display P3',
+          'color()',
+          () => _cssVariables(displayP3: true),
+        ),
+        format('Flutter', 'Color()', () => _flutterList),
+        const Divider(height: 13, indent: 14, endIndent: 14),
+        group('Scale'),
+        format('Tailwind', '50 – 950', () => _tailwindScale),
+      ],
+      builder: (context, controller, _) => TextButton.icon(
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+        icon: const Icon(Icons.copy_rounded, size: 16),
+        label: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Copy', maxLines: 1),
+            SizedBox(width: 2),
+            Icon(Icons.expand_more_rounded, size: 16),
+          ],
         ),
       ),
     );

@@ -20,57 +20,26 @@ class const StudioSegmentedControl<T extends Object>({
   static const _track = Color(0xFF8E8E93);
   // Keep the light palette inside the filter's range so it preserves the
   // partially covered pixels at the edges of each glyph.
-  static const _lightThumb = Color(0xFF999BA5);
+  static const _lightThumb = Color(0xFF9799A3);
   static const _lightSelectedInk = Color(0xFF0B0D16);
-  static const _light = ColorFilter.matrix([
-    1.6,
-    0,
-    0,
-    0,
-    9,
-    0,
-    1.6,
-    0,
-    0,
-    6,
-    0,
-    0,
-    1.6,
-    0,
-    -11,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ]);
-  static const _dark = ColorFilter.matrix([
-    1.7,
-    0,
-    0,
-    0,
-    -225,
-    0,
-    1.7,
-    0,
-    0,
-    -223,
-    0,
-    0,
-    1.7,
-    0,
-    -219,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ]);
+
+  /// Stretches contrast by [gain] and lands [_track] on [trackColor], so
+  /// the control's track matches the reels' surface.
+  static ColorFilter _filter(double gain, Color trackColor) {
+    double offset(double target, double track) => (target - gain * track) * 255;
+    return ColorFilter.matrix([
+      gain, 0, 0, 0, offset(trackColor.r, _track.r), //
+      0, gain, 0, 0, offset(trackColor.g, _track.g),
+      0, 0, gain, 0, offset(trackColor.b, _track.b),
+      0, 0, 0, 1, 0,
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final trackColor = theme.colorScheme.surfaceContainer;
     final isPhone = MediaQuery.sizeOf(context).width < studioPhoneBreakpoint;
     final minHeight = compact ? 30.0 : (isPhone ? 44.0 : 40.0);
     final selectedInk = isDark ? Colors.white : _lightSelectedInk;
@@ -89,7 +58,7 @@ class const StudioSegmentedControl<T extends Object>({
     }
 
     return ColorFiltered(
-      colorFilter: isDark ? _dark : _light,
+      colorFilter: isDark ? _filter(1.7, trackColor) : _filter(1.6, trackColor),
       child: CupertinoSlidingSegmentedControl<T>(
         groupValue: value,
         proportionalWidth: true,
@@ -146,9 +115,7 @@ class const StudioTogglePill({
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = selected
-        ? scheme.onSurface
-        : (isDark ? const Color(0xFF16181F) : const Color(0xFFECE9E1));
+    final bg = selected ? scheme.onSurface : scheme.surfaceContainer;
     final fg = selected ? scheme.surface : scheme.onSurfaceVariant;
     final border = selected
         ? Colors.transparent
