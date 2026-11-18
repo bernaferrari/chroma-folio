@@ -17,13 +17,10 @@
 
 ## Why HSL lightness lies
 
-Many color pickers use HSL, where lightness comes from a formula rather than from what you see. Both wheels below are set to lightness 50. Watch the color drain from the middle: each hue turns into the gray it really looks like, right under its own color in the ring.
+Many color pickers use HSL, where lightness comes from a formula rather than from what you see. Both wheels below are set to lightness 50. The center shows the gray that matches each hue's perceived brightness.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-reduced-motion: reduce)" srcset="docs/screenshots/lightness_rings.png">
-    <img src="docs/screenshots/lightness_rings.webp" width="100%" alt="An HSL and an HSLuv color wheel, both at lightness 50. The color drains from the middle of each wheel. HSL's grays split into light spokes under yellow and cyan and dark ones under blue; HSLuv's settle into one even gray.">
-  </picture>
+  <img src="docs/screenshots/lightness_rings.png" width="100%" alt="HSL and HSLuv color wheels at lightness 50. The HSL wheel has a center with shades of gray that vary by hue. The HSLuv wheel has a uniform gray center.">
 </p>
 
 In HSL, yellow comes out almost white and blue comes out dark. HSLuv measures lightness the way eyes see it, so every gray matches. The trade-off is that its yellow turns olive, because no yellow can be both vivid and that dark.

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cupertino_ui/cupertino_ui.dart'
     show CupertinoSlidingSegmentedControl;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
@@ -173,7 +175,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final after = cubit.state.activeColor.hsluv.lightness;
-      expect(isOnBand(after, 5), isTrue, reason: 'rested at $after');
+      expect(after, closeTo(during, 0.01), reason: 'rests where it is let go');
+      expect(isOnBand(after, 5), isFalse, reason: 'no snapping to a band');
       expect(cubit.state.canUndo, isTrue);
 
       cubit.undo();
@@ -183,7 +186,7 @@ void main() {
     testWidgets('a reel follows the finger band for band', (tester) async {
       final cubit = await pumpStudio(tester);
       final strip = tester.getRect(reelStrip(0));
-      final bandLength = (strip.height / 13).clamp(32.0, 56.0);
+      final bandLength = math.min(36.0, strip.height / 7);
       final before = cubit.state.activeColor.hsluv.hue;
 
       final gesture = await tester.startGesture(strip.center);
@@ -240,7 +243,7 @@ void main() {
       expect(tester.getCenter(lens), offsetMoreOrLessEquals(resting));
     });
 
-    testWidgets('flinging the hue reel keeps it spinning and lands on a band', (
+    testWidgets('flinging the hue reel keeps it spinning', (
       tester,
     ) async {
       final cubit = await pumpStudio(tester);
@@ -252,7 +255,6 @@ void main() {
       final after = cubit.state.activeColor.hsluv.hue;
       const dragOnly = 120 / 32 * 15;
       expect((after - before).abs(), greaterThan(dragOnly));
-      expect(isOnBand(after, 15), isTrue, reason: 'rested at $after');
     });
 
     testWidgets('a saturation fling stops at the end of the range', (
@@ -327,7 +329,6 @@ void main() {
 
       final after = cubit.state.activeColor.hsluv.hue;
       expect(after, isNot(before));
-      expect(isOnBand(after, 20), isTrue, reason: 'rested at $after');
     });
 
     testWidgets('dragging a spectrum strip picks from that strip', (
@@ -347,7 +348,7 @@ void main() {
 
       final picked = cubit.state.activeColor;
       expect(cubit.state.activeSpace, ColorSpaceMode.hsl);
-      expect(isOnBand(picked.hsl.hue, 20), isTrue, reason: '${picked.hsl.hue}');
+      expect(picked.hsl.hue, isNot(closeTo(before.hue, 0.01)));
       expect(picked.hsl.saturation * 100, closeTo(before.saturation, 0.01));
       expect(picked.hsl.lightness * 100, closeTo(before.lightness, 0.01));
     });

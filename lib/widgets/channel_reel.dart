@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -28,7 +30,12 @@ class _ChannelReelState extends State<ChannelReel>
     with SingleTickerProviderStateMixin {
   static const double _hueStep = 15;
   static const double _levelStep = 5;
-  static const double _bandsInView = 13;
+
+  /// Every reel shares one band size, so a drag moves each one the same.
+  static const double _bandLength = 36;
+
+  /// Short reels shrink their bands to keep at least this many in view.
+  static const double _minBandsInView = 7;
   static const double _lensInset = 7;
   static const double _lensOverhang = 7;
 
@@ -149,9 +156,9 @@ class _ChannelReelState extends State<ChannelReel>
                     final extent = _isVertical
                         ? constraints.maxHeight
                         : constraints.maxWidth;
-                    final bandLength = (extent / _bandsInView).clamp(
-                      _isVertical ? 32.0 : 24.0,
-                      56.0,
+                    final bandLength = math.min(
+                      _bandLength,
+                      extent / _minBandsInView,
                     );
                     _motion.pixelsPerUnit = bandLength / _motion.step;
 

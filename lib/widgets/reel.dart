@@ -9,7 +9,7 @@ import 'package:material_ui/material_ui.dart';
 /// Motion model for a strip of colour bands that slides under a fixed lens.
 ///
 /// The strip tracks the finger exactly, keeps its momentum when flung and
-/// always comes to rest with a band centred in the lens.
+/// rests wherever it is let go. Only a tapped band glides into the lens.
 class ReelMotion({
   required TickerProvider vsync,
   required final VoidCallback onStart,
@@ -98,7 +98,7 @@ class ReelMotion({
     _dragging = false;
     _pastEnd = false;
     final velocity = -_paintSign * pixelsPerSecond / pixelsPerUnit;
-    _settleTo(_snap(_position + velocity * _flingReach), velocity: velocity);
+    _settleTo(_inRange(_position + velocity * _flingReach), velocity: velocity);
   }
 
   /// Slides freely by [deltaPixels], for wheels and trackpads.
@@ -110,11 +110,11 @@ class ReelMotion({
     _emit();
   }
 
-  /// Glides to the band nearest to the current position.
+  /// Comes to rest where it is, gliding back first if pulled past an end.
   void settle() {
     if (_dragging) return;
     _engage();
-    _settleTo(_snap(_position));
+    _settleTo(_inRange(_position));
   }
 
   /// Glides to the band nearest to [value].
@@ -133,10 +133,10 @@ class ReelMotion({
     _finish(wraps ? next : next.clamp(min, max).toDouble());
   }
 
-  double _snap(double value) {
-    final snapped = (value / step).roundToDouble() * step;
-    return wraps ? snapped : snapped.clamp(min, max).toDouble();
-  }
+  double _snap(double value) => _inRange((value / step).roundToDouble() * step);
+
+  double _inRange(double value) =>
+      wraps ? value : value.clamp(min, max).toDouble();
 
   double _withOverscrollGive(double raw) {
     if (raw < min) return min + (raw - min) * _overscrollGive;
@@ -422,9 +422,15 @@ class const ReelLens({
   final Offset push = Offset.zero,
   final Widget? child,
 }) extends StatelessWidget {
+  static const double radius = 16;
   static const double _maxShift = 9;
-  static const double _maxSquash = 0.07;
   static const double _pushScale = 36;
+
+  // In pixels rather than as a scale, so wide and narrow lenses grow alike
+  // and never reach the edges of their reel.
+  static const double _pressGrowth = 3;
+  static const double _maxSquash = 4;
+  static const double _maxBulge = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -434,45 +440,56 @@ class const ReelLens({
     final along = Offset(direction.dx.abs(), direction.dy.abs()) * give;
 
     return IgnorePointer(
-      child: Transform.translate(
-        offset: direction * _maxShift * give,
-        child: Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.diagonal3Values(
-            1 - _maxSquash * along.dx + _maxSquash / 2 * along.dy,
-            1 - _maxSquash * along.dy + _maxSquash / 2 * along.dx,
-            1,
-          ),
-          child: AnimatedScale(
-            scale: pressed ? 1.04 : 1.0,
+      child: LayoutBuilder(
+        builder: (context, constraints) => TweenAnimationBuilder<double>(
+          tween: Tween(end: pressed ? 1 : 0),
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          builder: (context, press, lens) {
+            final growth = _pressGrowth * press;
+            final size = constraints.biggest;
+            return Transform.translate(
+              offset: direction * _maxShift * give,
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.diagonal3Values(
+                  1 +
+                      (growth - _maxSquash * along.dx + _maxBulge * along.dy) /
+                          size.width,
+                  1 +
+                      (growth - _maxSquash * along.dy + _maxBulge * along.dx) /
+                          size.height,
+                  1,
+                ),
+                child: lens,
+              ),
+            );
+          },
+          child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             curve: Curves.easeOutCubic,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeOutCubic,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: quiet ? 0.55 : 1),
-                  width: quiet ? 1.5 : 2.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: quiet ? 0 : 0.22),
-                    blurRadius: 1.5,
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(
-                      alpha: quiet ? 0 : (pressed ? 0.30 : 0.20) + 0.08 * give,
-                    ),
-                    blurRadius: (pressed ? 22 : 12) + 10 * give,
-                    offset: Offset(0, pressed ? 8 : 4) + direction * 10 * give,
-                  ),
-                ],
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: quiet ? 0.55 : 1),
+                width: quiet ? 1.5 : 2.5,
               ),
-              child: child,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: quiet ? 0 : 0.22),
+                  blurRadius: 1.5,
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: quiet ? 0 : (pressed ? 0.30 : 0.20) + 0.08 * give,
+                  ),
+                  blurRadius: (pressed ? 22 : 12) + 10 * give,
+                  offset: Offset(0, pressed ? 8 : 4) + direction * 10 * give,
+                ),
+              ],
             ),
+            child: child,
           ),
         ),
       ),
