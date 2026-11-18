@@ -65,41 +65,50 @@ class _StudioHomeState extends State<StudioHome> {
       softWrap: false,
       style: studioDisplayStyle(context, fontSize: 28, height: 1.0),
     );
-    final lensSelector = StudioPillSelector<_Lens>(
+    final lensSelector = StudioSegmentedControl<_Lens>(
       value: _lens,
-      expand: true,
-      options: const [
-        StudioPillOption(value: _Lens.reels, label: 'Reels'),
-        StudioPillOption(value: _Lens.spectrum, label: 'Spectrum'),
-        StudioPillOption(value: _Lens.solid, label: 'Solid'),
-        StudioPillOption(value: _Lens.palette, label: 'Palette'),
-      ],
+      labels: const {
+        _Lens.reels: 'Reels',
+        _Lens.spectrum: 'Spectrum',
+        _Lens.solid: 'Solid',
+        _Lens.palette: 'Palette',
+      },
       onChanged: (lens) => setState(() => _lens = lens),
     );
     const spaceSelector = _SpaceSelector();
     final horizontalSelectors = Row(
       children: [
-        Expanded(flex: 4, child: lensSelector),
+        Expanded(
+          flex: 4,
+          child: Align(alignment: Alignment.centerLeft, child: lensSelector),
+        ),
         const SizedBox(width: 12),
-        const Expanded(flex: 3, child: spaceSelector),
+        const Expanded(
+          flex: 3,
+          child: Align(alignment: Alignment.centerRight, child: spaceSelector),
+        ),
       ],
     );
 
     const actions = _HistoryAndThemeActions();
 
-    final workspace = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      child: _buildLens(),
-    );
+    final workspace = _buildLens();
 
     final toolsRow = LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < _sideBySideToolsWidth) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [lensSelector, const SizedBox(height: 8), spaceSelector],
+            children: size.width < studioPhoneBreakpoint
+                ? [lensSelector, const SizedBox(height: 8), spaceSelector]
+                : [
+                    Align(alignment: Alignment.centerLeft, child: lensSelector),
+                    const SizedBox(height: 8),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: spaceSelector,
+                    ),
+                  ],
           );
         }
         return horizontalSelectors;
@@ -228,13 +237,9 @@ class const _SpaceSelector() extends StatelessWidget {
     final space = context.select(
       (StudioCubit cubit) => cubit.state.activeSpace,
     );
-    return StudioPillSelector<ColorSpaceMode>(
+    return StudioSegmentedControl<ColorSpaceMode>(
       value: _spaces.contains(space) ? space : ColorSpaceMode.hsluv,
-      expand: true,
-      options: [
-        for (final option in _spaces)
-          StudioPillOption(value: option, label: option.label),
-      ],
+      labels: {for (final option in _spaces) option: option.label},
       onChanged: context.read<StudioCubit>().setSpaceMode,
     );
   }

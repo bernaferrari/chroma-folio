@@ -566,26 +566,14 @@ class const _ExportHubCard({
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: StudioPillSelector<_ExportFormat>(
+              child: StudioSegmentedControl<_ExportFormat>(
                 compact: true,
-                options: const [
-                  StudioPillOption(
-                    value: _ExportFormat.css4,
-                    label: 'CSS OKLCH',
-                  ),
-                  StudioPillOption(
-                    value: _ExportFormat.tailwind,
-                    label: 'Tailwind v4',
-                  ),
-                  StudioPillOption(
-                    value: _ExportFormat.flutter,
-                    label: 'Flutter',
-                  ),
-                  StudioPillOption(
-                    value: _ExportFormat.designTokens,
-                    label: 'W3C Tokens',
-                  ),
-                ],
+                labels: const {
+                  _ExportFormat.css4: 'CSS OKLCH',
+                  _ExportFormat.tailwind: 'Tailwind v4',
+                  _ExportFormat.flutter: 'Flutter',
+                  _ExportFormat.designTokens: 'W3C Tokens',
+                },
                 value: format,
                 onChanged: onFormatChanged,
               ),

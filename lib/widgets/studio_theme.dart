@@ -1,223 +1,135 @@
-import 'dart:math' as math;
-
+import 'package:cupertino_ui/cupertino_ui.dart'
+    show CupertinoSlidingSegmentedControl;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Descriptor for an option inside [StudioPillSelector].
-class const StudioPillOption<T>({
-  required final T value,
-  required final String label,
-  final IconData? icon,
+const studioPhoneBreakpoint = 568.0;
 
-  /// Shows just [icon], keeping [label] as the tooltip and spoken name.
-  final bool iconOnly = false,
-});
-
-/// Sleek, single-line segmented pill control that never wraps text across lines.
-///
-/// When [canvasInk] is provided, renders in translucent adaptive ink suitable for
-/// placement directly over any live color surface.
-class const StudioPillSelector<T>({
+/// Shared styling for the studio's Cupertino segmented controls.
+class const StudioSegmentedControl<T extends Object>({
   super.key,
-  required final List<StudioPillOption<T>> options,
   required final T value,
+  required final Map<T, String> labels,
   required final ValueChanged<T> onChanged,
+  final Map<T, IconData> icons = const {},
   final bool compact = false,
-
-  /// Fills the available width with equally wide options.
-  final bool expand = false,
-  final Color? canvasInk,
 }) extends StatelessWidget {
-  Widget _item(
-    StudioPillOption<T> option,
-    Color selectedBg,
-    Color selectedBorder,
-  ) {
-    final item = _PillItem<T>(
-      option: option,
-      selected: option.value == value,
-      compact: compact,
-      expand: expand,
-      selectedBg: selectedBg,
-      selectedBorder: selectedBorder,
-      inkOverride: canvasInk,
-      onTap: () {
-        if (option.value != value) {
+  // Match Cupertino's fixed separator ink before mapping the whole control
+  // to the studio palette. The separator then disappears at any opacity.
+  static const _track = Color(0xFF8E8E93);
+  // Keep the light palette inside the filter's range so it preserves the
+  // partially covered pixels at the edges of each glyph.
+  static const _lightThumb = Color(0xFF999BA5);
+  static const _lightSelectedInk = Color(0xFF0B0D16);
+  static const _light = ColorFilter.matrix([
+    1.6,
+    0,
+    0,
+    0,
+    9,
+    0,
+    1.6,
+    0,
+    0,
+    6,
+    0,
+    0,
+    1.6,
+    0,
+    -11,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ]);
+  static const _dark = ColorFilter.matrix([
+    1.7,
+    0,
+    0,
+    0,
+    -225,
+    0,
+    1.7,
+    0,
+    0,
+    -223,
+    0,
+    0,
+    1.7,
+    0,
+    -219,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPhone = MediaQuery.sizeOf(context).width < studioPhoneBreakpoint;
+    final minHeight = compact ? 30.0 : (isPhone ? 44.0 : 40.0);
+    final selectedInk = isDark ? Colors.white : _lightSelectedInk;
+    // These colors are mapped by the filter to muted label colors.
+    final unselectedInk = isDark
+        ? const Color(0xFFDDDDDD)
+        : const Color(0xFF3E3F47);
+    TextStyle labelStyle(bool selected) {
+      final style = (theme.textTheme.labelMedium ?? const TextStyle()).copyWith(
+        color: selected ? selectedInk : unselectedInk,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      );
+      return GoogleFonts.config.allowRuntimeFetching
+          ? GoogleFonts.plusJakartaSans(textStyle: style)
+          : style;
+    }
+
+    return ColorFiltered(
+      colorFilter: isDark ? _dark : _light,
+      child: CupertinoSlidingSegmentedControl<T>(
+        groupValue: value,
+        proportionalWidth: true,
+        backgroundColor: _track,
+        thumbColor: isDark ? const Color(0xFF9D9DA2) : _lightThumb,
+        onValueChanged: (next) {
+          if (next == null || next == value) return;
           HapticFeedback.selectionClick();
-          onChanged(option.value);
-        }
-      },
-    );
-    return expand ? Expanded(child: item) : item;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ink = canvasInk;
-
-    final trackColor = ink != null
-        ? ink.withValues(alpha: 0.10)
-        : (isDark ? const Color(0xFF16181F) : const Color(0xFFECE9E1));
-    final selectedBg = ink != null
-        ? ink.withValues(alpha: 0.20)
-        : (isDark ? const Color(0xFF292C36) : Colors.white);
-    final selectedBorder = ink != null
-        ? ink.withValues(alpha: 0.28)
-        : (isDark
-              ? Colors.white.withValues(alpha: 0.10)
-              : Colors.black.withValues(alpha: 0.06));
-    final trackBorder = ink != null
-        ? ink.withValues(alpha: 0.16)
-        : scheme.outlineVariant.withValues(alpha: isDark ? 0.24 : 0.38);
-
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: trackColor,
-        borderRadius: BorderRadius.circular(compact ? 11 : 13),
-        border: Border.all(color: trackBorder),
-      ),
-      child: Row(
-        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-        children: [
-          for (final option in options)
-            _item(option, selectedBg, selectedBorder),
-        ],
-      ),
-    );
-  }
-}
-
-class const _PillItem<T>({
-  required final StudioPillOption<T> option,
-  required final bool selected,
-  required final bool compact,
-  required final bool expand,
-  required final Color selectedBg,
-  required final Color selectedBorder,
-  required final VoidCallback onTap,
-  final Color? inkOverride,
-}) extends StatefulWidget {
-  @override
-  State<_PillItem<T>> createState() => _PillItemState<T>();
-}
-
-class _PillItemState<T> extends State<_PillItem<T>> {
-  bool _showFocus = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inkOverride = widget.inkOverride;
-    final selected = widget.selected;
-    final compact = widget.compact;
-    final option = widget.option;
-    final fg = inkOverride != null
-        ? inkOverride.withValues(alpha: selected ? 0.96 : 0.65)
-        : (selected ? scheme.onSurface : scheme.onSurfaceVariant);
-
-    final icon = option.icon;
-    final showsIconOnly = option.iconOnly && icon != null;
-    final fontSize = compact ? 12.0 : 12.5;
-    final labelHeight = MediaQuery.textScalerOf(context).scale(fontSize) * 1.15;
-    final tabHeight = compact
-        ? math.max(30.0, labelHeight.ceilToDouble() + 12)
-        : math.max(44.0, labelHeight.ceilToDouble() + 14);
-
-    final item = FocusableActionDetector(
-      mouseCursor: SystemMouseCursors.click,
-      onShowFocusHighlight: (show) => setState(() => _showFocus = show),
-      shortcuts: const {
-        SingleActivator(LogicalKeyboardKey.enter, includeRepeats: false):
-            ActivateIntent(),
-        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-      },
-      actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(
-          onInvoke: (_) {
-            widget.onTap();
-            return null;
-          },
-        ),
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          height: tabHeight,
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.expand ? 6 : (compact ? 10 : 12),
-          ),
-          decoration: BoxDecoration(
-            color: selected ? widget.selectedBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(compact ? 8 : 10),
-            border: Border.all(
-              color: _showFocus
-                  ? fg
-                  : selected
-                  ? widget.selectedBorder
-                  : Colors.transparent,
-            ),
-            boxShadow: selected && !isDark && inkOverride == null
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+          onChanged(next);
+        },
+        children: {
+          for (final entry in labels.entries)
+            entry.key: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 24, minHeight: minHeight),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icons[entry.key] case final icon?) ...[
+                    Icon(
+                      icon,
+                      size: 14,
+                      color: entry.key == value ? selectedInk : unselectedInk,
                     ),
-                  ]
-                : null,
-          ),
-          child: Align(
-            widthFactor: 1,
-            child: showsIconOnly
-                ? Icon(icon, size: 18, color: fg, semanticLabel: option.label)
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: compact ? 14 : 15, color: fg),
-                        SizedBox(width: compact ? 5 : 6),
-                      ],
-                      Flexible(
-                        child: Text(
-                          option.label,
-                          maxLines: 1,
-                          softWrap: false,
-                          overflow: TextOverflow.fade,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                fontSize: fontSize,
-                                fontWeight: selected
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                                color: fg,
-                                height: 1.15,
-                              ),
-                        ),
-                      ),
-                    ],
+                    const SizedBox(width: 5),
+                  ],
+                  Flexible(
+                    child: Text(
+                      entry.value,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle(entry.key == value),
+                    ),
                   ),
-          ),
-        ),
+                ],
+              ),
+            ),
+        },
       ),
-    );
-    final button = Semantics(button: true, selected: selected, child: item);
-    if (!showsIconOnly) return button;
-    return Tooltip(
-      message: option.label,
-      excludeFromSemantics: true,
-      waitDuration: const Duration(milliseconds: 400),
-      child: button,
     );
   }
 }

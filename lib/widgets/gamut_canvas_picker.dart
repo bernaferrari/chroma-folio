@@ -265,21 +265,17 @@ class _GamutCanvasPickerState extends State<GamutCanvasPicker>
                   ),
                 ),
                 const SizedBox(width: 8),
-                StudioPillSelector<_Gamut2DMode>(
+                StudioSegmentedControl<_Gamut2DMode>(
                   compact: true,
                   value: _mode,
-                  options: const [
-                    StudioPillOption(
-                      value: _Gamut2DMode.polarSlice,
-                      icon: Icons.radar_rounded,
-                      label: 'Polar',
-                    ),
-                    StudioPillOption(
-                      value: _Gamut2DMode.hueLightnessMatrix,
-                      icon: Icons.grid_on_rounded,
-                      label: 'Matrix',
-                    ),
-                  ],
+                  labels: const {
+                    _Gamut2DMode.polarSlice: 'Polar',
+                    _Gamut2DMode.hueLightnessMatrix: 'Matrix',
+                  },
+                  icons: const {
+                    _Gamut2DMode.polarSlice: Icons.radar_rounded,
+                    _Gamut2DMode.hueLightnessMatrix: Icons.grid_on_rounded,
+                  },
                   onChanged: (val) => setState(() => _mode = val),
                 ),
               ],

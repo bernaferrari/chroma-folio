@@ -1,3 +1,5 @@
+import 'package:cupertino_ui/cupertino_ui.dart'
+    show CupertinoSlidingSegmentedControl;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
@@ -8,8 +10,8 @@ import 'package:chroma_folio/blocs/studio_cubit.dart';
 import 'package:chroma_folio/main.dart';
 import 'package:chroma_folio/models/accessibility_utils.dart';
 import 'package:chroma_folio/models/color_spaces.dart';
+import 'package:chroma_folio/screens/picker_screen.dart';
 import 'package:chroma_folio/widgets/channel_reel.dart';
-import 'package:chroma_folio/widgets/studio_theme.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
@@ -107,6 +109,17 @@ void main() {
 
     Finder reelStrip(int channel) => find
         .descendant(of: reel(channel), matching: find.byType(CustomPaint))
+        .first;
+
+    Finder tab(String label) => find
+        .ancestor(
+          of: find.text(label),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics &&
+                widget.properties.inMutuallyExclusiveGroup == true,
+          ),
+        )
         .first;
 
     bool isOnBand(double value, double step) {
@@ -391,7 +404,7 @@ void main() {
     });
 
     testWidgets(
-      'pinching the solid and resetting its view only move the camera',
+      'pinching the solid and easing back to reset only move the camera',
       (tester) async {
         final cubit = await pumpStudio(tester);
         await tester.tap(find.text('Solid'));
@@ -418,7 +431,8 @@ void main() {
         final edge = tester.getTopLeft(viewport) + const Offset(24, 24);
         await tester.dragFrom(edge, const Offset(140, 0));
         await tester.pumpAndSettle();
-        expect(await solidFrame(tester, viewport), isNot(zoomed));
+        final turned = await solidFrame(tester, viewport);
+        expect(turned, isNot(zoomed));
 
         final reset = find.widgetWithIcon(
           IconButton,
@@ -432,6 +446,13 @@ void main() {
         await tester.pump();
         expect(resetFocus.hasPrimaryFocus, isTrue);
         await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pump();
+        expect(await solidFrame(tester, viewport), turned);
+        await tester.pump(const Duration(milliseconds: 130));
+        expect(
+          await solidFrame(tester, viewport),
+          isNot(anyOf(turned, original)),
+        );
         await tester.pumpAndSettle();
         expect(await solidFrame(tester, viewport), original);
         expect(cubit.state.activeColor, before);
@@ -567,12 +588,12 @@ void main() {
       expect(cubit.state.palette.map((c) => c.hex).toList(), before);
     });
 
-    testWidgets('lens and space tabs have equal heights across layouts', (
+    testWidgets('studio tabs size to their labels at a shared height', (
       tester,
     ) async {
       await pumpStudio(tester);
       final selectors = find.byWidgetPredicate(
-        (widget) => widget is StudioPillSelector,
+        (widget) => widget is CupertinoSlidingSegmentedControl,
       );
 
       for (final width in [1440.0, 1280.0, 900.0, 390.0]) {
@@ -580,13 +601,34 @@ void main() {
         await tester.pumpAndSettle();
         final lens = tester.getRect(selectors.at(0));
         final space = tester.getRect(selectors.at(1));
+        if (width == 390) {
+          expect(lens.width, closeTo(width - 28, 0.01));
+          expect(space.width, closeTo(lens.width, 0.01));
+        } else {
+          expect(lens.right, lessThan(space.right), reason: 'width $width');
+        }
+        expect(
+          tester.getSize(tab('Spectrum')).width,
+          greaterThan(tester.getSize(tab('Reels')).width),
+        );
         expect(
           lens.height,
           closeTo(space.height, 0.01),
           reason: 'width $width',
         );
-        expect(lens.height, 52, reason: 'width $width');
+        expect(lens.height, width == 390 ? 48 : 44, reason: 'width $width');
       }
+    });
+
+    testWidgets('switching lenses replaces the workspace on the next frame', (
+      tester,
+    ) async {
+      await pumpStudio(tester);
+      expect(find.byType(PickerScreen), findsOneWidget);
+      await tester.tap(find.text('Solid'));
+      await tester.pump();
+      expect(find.byType(PickerScreen), findsNothing);
+      expect(find.byKey(const ValueKey('gamut_solid_canvas')), findsOneWidget);
     });
 
     testWidgets('keyboard tabs activate without shuffling the palette', (
@@ -594,36 +636,31 @@ void main() {
     ) async {
       final cubit = await pumpStudio(tester);
       final revision = cubit.state.shuffleRevision;
-      Widget? focusedControl() => FocusManager.instance.primaryFocus?.context
-          ?.findAncestorWidgetOfExactType<FocusableActionDetector>();
-      Widget tabControl(String label) => tester.widget(
-        find
-            .ancestor(
-              of: find.text(label),
-              matching: find.byType(FocusableActionDetector),
-            )
-            .first,
-      );
+      bool tabHasFocus(String label) {
+        final focused = FocusManager.instance.primaryFocus?.context;
+        final tabFocus = find
+            .ancestor(of: tab(label), matching: find.byType(Focus))
+            .first;
+        return tabFocus.evaluate().single == focused;
+      }
 
-      for (var i = 0; i < 20 && focusedControl() != tabControl('Solid'); i++) {
+      for (var i = 0; i < 20 && !tabHasFocus('Reels'); i++) {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pump();
       }
-      expect(focusedControl(), tabControl('Solid'));
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      expect(tabHasFocus('Reels'), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pumpAndSettle();
+      expect(tabHasFocus('Solid'), isTrue);
+      expect(find.byKey(const ValueKey('gamut_solid_canvas')), findsOneWidget);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
       await tester.sendKeyRepeatEvent(LogicalKeyboardKey.space);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('gamut_solid_canvas')), findsOneWidget);
-
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
-      await tester.pump();
-      expect(focusedControl(), tabControl('Spectrum'));
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
+      expect(tabHasFocus('Spectrum'), isTrue);
       expect(find.byKey(const ValueKey('gamut_solid_canvas')), findsNothing);
       expect(cubit.state.shuffleRevision, revision);
     });
@@ -637,16 +674,12 @@ void main() {
       await tester.pumpWidget(StudioApp(cubit: StudioCubit()));
       await tester.pumpAndSettle();
       for (final lens in ['Spectrum', 'Solid', 'Palette', 'Reels']) {
-        final target = find
-            .ancestor(
-              of: find.text(lens),
-              matching: find.byType(FocusableActionDetector),
-            )
-            .first;
+        final target = tab(lens);
         final size = tester.getSize(target);
         expect(size.height, greaterThanOrEqualTo(44), reason: lens);
         expect(size.width, greaterThanOrEqualTo(44), reason: lens);
-        await tester.tap(find.text(lens));
+        await tester.ensureVisible(target);
+        await tester.tap(target);
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: lens);
       }
@@ -654,7 +687,8 @@ void main() {
 
       tester.view.physicalSize = const Size(360, 640);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Palette'));
+      await tester.ensureVisible(tab('Palette'));
+      await tester.tap(tab('Palette'));
       await tester.pumpAndSettle();
       final copy = find.text('Copy palette').hitTestable();
       expect(copy, findsNothing);

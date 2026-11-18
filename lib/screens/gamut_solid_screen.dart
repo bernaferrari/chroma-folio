@@ -35,10 +35,10 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   static const double _levelReelWidth = 60;
 
   late final AnimationController _spin;
+  late final AnimationController _zoom;
   late final AnimationController _morph;
   late final Animation<double> _progress;
   late final Listenable _repaint;
-  final _zoom = ValueNotifier(1.0);
   final _pointers = <int>{};
   bool _pinched = false;
   double _zoomAtScaleStart = 1;
@@ -65,6 +65,12 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     _spin = AnimationController.unbounded(
       vsync: this,
       value: _Camera.yawFacing(hue),
+    );
+    _zoom = AnimationController(
+      vsync: this,
+      value: 1,
+      lowerBound: 0.65,
+      upperBound: 2.6,
     );
     _morph = AnimationController(vsync: this, value: 1);
     _progress = _morph.drive(CurveTween(curve: Curves.easeInOutCubic));
@@ -146,17 +152,25 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   void _handleScroll(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
     GestureBinding.instance.pointerSignalResolver.register(event, (_) {
-      _setZoom(_zoom.value * math.exp(-event.scrollDelta.dy / 420));
+      _zoom.value *= math.exp(-event.scrollDelta.dy / 420);
     });
   }
-
-  void _setZoom(double zoom) => _zoom.value = zoom.clamp(0.65, 2.6);
 
   void _resetView() {
     final state = _cubit.state;
     final hue = state.activeColor.channelsFor(state.activeSpace)[0].value;
-    _spin.value = _Camera.yawFacing(hue);
-    _zoom.value = 1;
+    final yaw = _Camera.yawFacing(hue);
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _spin.value = yaw;
+      _zoom.value = 1;
+      return;
+    }
+
+    const duration = Duration(milliseconds: 260);
+    const curve = Curves.easeInOutCubic;
+    final turn = (yaw - _spin.value + math.pi) % (2 * math.pi) - math.pi;
+    _spin.animateTo(_spin.value + turn, duration: duration, curve: curve);
+    _zoom.animateTo(1, duration: duration, curve: curve);
   }
 
   /// Picks under [position], or follows the rim during an active colour drag.
@@ -201,6 +215,7 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
 
   void _handleScaleStart(ScaleStartDetails details) {
     _spin.stop();
+    _zoom.stop();
     _zoomAtScaleStart = _zoom.value;
     _pinched = _pinched || details.pointerCount > 1;
     if (_pinched) return;
@@ -220,7 +235,7 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
     if (details.pointerCount > 1) {
-      _setZoom(_zoomAtScaleStart * details.scale);
+      _zoom.value = _zoomAtScaleStart * details.scale;
       return;
     }
     if (_pinched) return;
