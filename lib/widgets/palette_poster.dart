@@ -48,6 +48,7 @@ class _PosterPainter(
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
     final bounds = Offset.zero & size;
     canvas
       ..save()
@@ -107,34 +108,40 @@ class _PosterPainter(
   }
 
   void _paintGrid(Canvas canvas, Size size, List<Color> accents) {
-    // A square block for the lead, then a column of two square tiles.
+    // A square block for the lead, then two rows of square tiles.
     final block = math.min(size.height, size.width * 0.66);
     canvas.drawPath(
       _quarterDisc(Offset(0, size.height), block, 3),
       Paint()..color = accents.first,
     );
 
-    final tile = size.height / 2;
-    final tiles = Offset(block, 0) & Size(size.width - block, size.height);
     final rest = accents.skip(1).toList();
-    if (rest.isNotEmpty) {
-      final top = Rect.fromLTWH(tiles.left, 0, tiles.width, tile);
-      canvas
-        ..drawRect(top, Paint()..color = rest[0])
-        ..drawCircle(
-          top.center,
-          math.min(top.width, top.height) * 0.28,
-          Paint()..color = _ground,
-        );
-    }
-    if (rest.length > 1) {
-      canvas.drawPath(
-        _quarterDisc(Offset(tiles.left, tile), math.min(tiles.width, tile), 0),
-        Paint()..color = rest[1],
+    final tile = size.height / 2;
+    final columns = math.max(1, ((size.width - block) / tile).floor());
+    final tileWidth = (size.width - block) / columns;
+    final cells = math.min(rest.length, columns * 2);
+    for (var i = 0; i < cells; i++) {
+      final cell = Rect.fromLTWH(
+        block + (i ~/ 2) * tileWidth,
+        (i % 2) * tile,
+        tileWidth,
+        tile,
       );
+      final side = math.min(cell.width, cell.height);
+      final paint = Paint()..color = rest[i];
+      switch (i % 3) {
+        case 0:
+          canvas
+            ..drawRect(cell, paint)
+            ..drawCircle(cell.center, side * 0.28, Paint()..color = _ground);
+        case 1:
+          canvas.drawPath(_quarterDisc(cell.topLeft, side, 0), paint);
+        case _:
+          canvas.drawCircle(cell.center, side * 0.4, paint);
+      }
     }
     // Anything left over becomes dots in the open corner of the lead block.
-    for (final (i, color) in rest.skip(2).indexed) {
+    for (final (i, color) in rest.skip(cells).indexed) {
       canvas.drawCircle(
         Offset(block * (0.8 - i * 0.2), size.height * 0.2),
         size.height * 0.08,

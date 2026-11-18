@@ -1,4 +1,7 @@
+import 'dart:math' as math;
 import 'dart:ui' show ColorSpace;
+
+import 'package:flutter/foundation.dart' show listEquals;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -74,6 +77,7 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
                 Expanded(
                   child: _HarmonyChordsGrid(
                     chords: chords,
+                    space: state.activeSpace,
                     onPourChord: (chord) {
                       HapticFeedback.lightImpact();
                       cubit.applyColorsToPalette(chord.colors);
@@ -128,37 +132,64 @@ class const ScalesHarmoniesScreen({super.key}) extends StatelessWidget {
   ) {
     final channels = active.channelsFor(space);
     final baseHue = channels[0].value;
-    final saturation = channels[1].value;
-    final lightness = channels[2].value.clamp(28.0, 74.0);
+    final saturation = math.max(channels[1].value, 55.0);
+    final partnerTone = channels[2].value.clamp(45.0, 68.0);
 
-    StudioColor mix(double hueOffset, double tone, double intensity) =>
+    StudioColor tint(double hue, double tone, double intensity) =>
         StudioColor.fromSpace(
           space,
-          hue: baseHue + hueOffset,
-          saturationPct: saturation * intensity,
+          hue: hue,
+          saturationPct: math.min(saturation * intensity, 100.0),
           lightnessPct: tone,
         );
 
-    _HarmonyChord harmony(String title, double first, double second) =>
-        _HarmonyChord(
-          title: title,
-          colors: [
-            active,
-            mix(first, lightness + 10, 0.72),
-            mix(second, lightness - 4, 0.60),
-            mix(second, 27, 0.35),
-            mix(0, 42, 0.48),
-            mix(0, 68, 0.40),
-            mix(first, 83, 0.28),
-            mix(0, 94, 0.16),
-          ].take(count).toList(),
-        );
+    _HarmonyChord harmony(
+      String title,
+      List<double> offsets,
+      PosterStyle style, {
+      bool darkGround = false,
+    }) {
+      final first = baseHue + offsets.first;
+      final second = baseHue + offsets.last;
+      final twoHues = offsets.length == 1;
+      final swatches = [
+        active,
+        tint(first, partnerTone, 1),
+        tint(
+          second,
+          twoHues ? partnerTone + 22 : partnerTone + 6,
+          twoHues ? 0.75 : 0.9,
+        ),
+        tint(first, 93, 0.3),
+        tint(second, 24, 0.7),
+        tint(baseHue, 80, 0.55),
+        tint(baseHue, 30, 0.8),
+        tint(second, 86, 0.4),
+      ];
+      return _HarmonyChord(
+        title: title,
+        hues: [baseHue, for (final offset in offsets) baseHue + offset],
+        style: style,
+        darkGround: darkGround,
+        // Every colour comes from the harmony's own hues, so no two
+        // harmonies share anything but the picked colour.
+        colors: swatches.take(count).toList(),
+        dots: [
+          for (final swatch in swatches.take(offsets.length + 1)) swatch.color,
+        ],
+      );
+    }
 
     return [
-      harmony('Analogous', 28, -28),
-      harmony('Complementary', 180, 180),
-      harmony('Triadic', 120, 240),
-      harmony('Split complementary', 150, 210),
+      harmony('Analogous', [-30, 30], PosterStyle.arches),
+      harmony('Complementary', [180], PosterStyle.sun, darkGround: true),
+      harmony('Triadic', [120, 240], PosterStyle.grid),
+      harmony(
+        'Split complementary',
+        [150, 210],
+        PosterStyle.overprint,
+        darkGround: true,
+      ),
     ];
   }
 }
@@ -296,9 +327,8 @@ class const _StarterPaletteDialog({required final List<StudioColor> current})
 
   Widget _starterCard(BuildContext context, int index, List<int> current) {
     final starter = studioStarterPalettes[index];
-    return _StarterCard(
+    return _PosterCard(
       name: starter.name,
-      mood: starter.mood,
       selected: _matches(starter.colors, current),
       semanticLabel:
           'Use the ${starter.name} palette, ${starter.colors.length} colours',
@@ -318,21 +348,26 @@ class const _StarterPaletteDialog({required final List<StudioColor> current})
       colors.indexed.every((entry) => entry.$2.toARGB32() == current[entry.$1]);
 }
 
-/// A starter palette as a poster with its name underneath; no frame, so the
-/// colours do the talking.
-class const _StarterCard({
+/// A palette as a poster with its name underneath; no frame, so the colours
+/// do the talking.
+class const _PosterCard({
   required final String name,
-  required final String mood,
   required final Widget poster,
   required final String semanticLabel,
   required final VoidCallback onTap,
   final bool selected = false,
+
+  /// Shown after the name, unless the card is [selected].
+  final Widget? trailing,
+
+  /// Width over height of the poster; null fills the height the card gets.
+  final double? aspectRatio = 1.5,
 }) extends StatefulWidget {
   @override
-  State<_StarterCard> createState() => _StarterCardState();
+  State<_PosterCard> createState() => _PosterCardState();
 }
 
-class _StarterCardState extends State<_StarterCard> {
+class _PosterCardState extends State<_PosterCard> {
   static const _radius = 18.0;
   static const _ringGap = 3.0;
 
@@ -345,6 +380,27 @@ class _StarterCardState extends State<_StarterCard> {
     final ring = widget.selected
         ? scheme.onSurface
         : scheme.onSurface.withValues(alpha: _hovered ? 0.14 : 0);
+    final frame = AnimatedScale(
+      scale: _pressed
+          ? 0.97
+          : _hovered
+          ? 1.015
+          : 1.0,
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOutCubic,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(_ringGap),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_radius + _ringGap),
+          border: Border.all(color: ring, width: 1.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(_radius),
+          child: widget.poster,
+        ),
+      ),
+    );
 
     return Semantics(
       button: true,
@@ -364,44 +420,32 @@ class _StarterCardState extends State<_StarterCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AnimatedScale(
-                scale: _pressed
-                    ? 0.97
-                    : _hovered
-                    ? 1.015
-                    : 1.0,
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOutCubic,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  padding: const EdgeInsets.all(_ringGap),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(_radius + _ringGap),
-                    border: Border.all(color: ring, width: 1.5),
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 1.5,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(_radius),
-                      child: widget.poster,
-                    ),
+              if (widget.aspectRatio case final aspectRatio?)
+                AspectRatio(aspectRatio: aspectRatio, child: frame)
+              else
+                Expanded(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 72),
+                    child: frame,
                   ),
                 ),
-              ),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        widget.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: studioDisplayStyle(
-                          context,
-                          fontSize: 19,
-                          height: 1.1,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          widget.name,
+                          maxLines: 1,
+                          style: studioDisplayStyle(
+                            context,
+                            fontSize: 19,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ),
@@ -410,19 +454,10 @@ class _StarterCardState extends State<_StarterCard> {
                         Icons.check_circle_rounded,
                         size: 15,
                         color: scheme.onSurface,
-                      ),
+                      )
+                    else
+                      ?widget.trailing,
                   ],
-                ),
-              ),
-              const SizedBox(height: 2),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  widget.mood,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(fontSize: 12, color: scheme.onSurfaceVariant),
                 ),
               ),
             ],
@@ -440,7 +475,6 @@ class const _TonalRampRibbon({
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     var closestIdx = 0;
     var bestDiff = double.infinity;
     for (int i = 0; i < ramp.length; i++) {
@@ -451,12 +485,8 @@ class const _TonalRampRibbon({
       }
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: scheme.onSurface.withValues(alpha: 0.06)),
-      ),
-      clipBehavior: Clip.antiAlias,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -490,59 +520,103 @@ class const _TonalBand({
         onTap: onTap,
         child: ColoredBox(
           color: color,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isClosest) ...[
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: ink,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                  ],
-                  Text(
-                    '$token',
-                    maxLines: 1,
-                    style: studioMonoStyle(
-                      context,
-                      fontSize: 10.5,
-                      fontWeight: isClosest ? FontWeight.w700 : FontWeight.w600,
-                      color: ink.withValues(alpha: isClosest ? 0.98 : 0.72),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) =>
+                _lens(context, ink, narrow: constraints.maxWidth < 52),
           ),
         ),
       ),
     );
   }
+
+  Widget _lens(BuildContext context, Color ink, {required bool narrow}) =>
+      Container(
+        // The same white lens that marks the picked band on the reels.
+        margin: EdgeInsets.all(narrow ? 2 : 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: isClosest
+              ? Border.all(color: Colors.white, width: 2.5)
+              : null,
+          boxShadow: isClosest
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.22),
+                    blurRadius: 1.5,
+                  ),
+                ]
+              : null,
+          color: isClosest ? color : null,
+        ),
+        alignment: Alignment.bottomCenter,
+        padding: const EdgeInsets.fromLTRB(2, 0, 2, 5),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '$token',
+            maxLines: 1,
+            style: studioMonoStyle(
+              context,
+              fontSize: 10.5,
+              fontWeight: isClosest ? FontWeight.w700 : FontWeight.w600,
+              color: ink.withValues(alpha: isClosest ? 0.98 : 0.72),
+            ),
+          ),
+        ),
+      );
 }
 
 class const _HarmonyChord({
   required final String title,
   required final List<StudioColor> colors,
-});
+
+  /// The picked hue first, then the hues the harmony adds to it.
+  required final List<double> hues,
+  required final PosterStyle style,
+
+  /// The colour shown for each of [hues] on the hue ring.
+  required final List<Color> dots,
+  final bool darkGround = false,
+}) {
+  /// The poster leads with the partners, so the picked colour (already on
+  /// screen everywhere else) is not the biggest shape.
+  List<Color> get posterColors {
+    final swatches = [for (final swatch in colors) swatch.color];
+    if (swatches.length < 3) return swatches;
+    return [swatches[1], swatches[2], swatches[0], ...swatches.skip(3)];
+  }
+
+  int posterBackground(List<Color> swatches) {
+    var best = swatches.length - 1;
+    for (var i = 1; i < swatches.length; i++) {
+      final luminance = swatches[i].computeLuminance();
+      final current = swatches[best].computeLuminance();
+      if (darkGround ? luminance < current : luminance > current) best = i;
+    }
+    return best;
+  }
+}
 
 class const _HarmonyChordsGrid({
   required final List<_HarmonyChord> chords,
+  required final ColorSpaceMode space,
   required final ValueChanged<_HarmonyChord> onPourChord,
 }) extends StatelessWidget {
-  Widget _chordCard(_HarmonyChord chord) => _PaletteCard(
-    title: chord.title,
-    colors: [for (final swatch in chord.colors) swatch.color],
-    semanticLabel: 'Fill the palette with ${chord.title} colours',
-    onTap: () => onPourChord(chord),
-  );
+  Widget _chordCard(_HarmonyChord chord) {
+    final swatches = chord.posterColors;
+    return _PosterCard(
+      name: chord.title,
+      aspectRatio: null,
+      semanticLabel: 'Fill the palette with ${chord.title} colours',
+      onTap: () => onPourChord(chord),
+      trailing: _HueRing(space: space, hues: chord.hues, colors: chord.dots),
+      poster: PalettePoster(
+        colors: swatches,
+        background: chord.posterBackground(swatches),
+        style: chord.style,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -550,19 +624,21 @@ class const _HarmonyChordsGrid({
       children: [
         Expanded(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: _chordCard(chords[0])),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(child: _chordCard(chords[1])),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         Expanded(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: _chordCard(chords[2])),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(child: _chordCard(chords[3])),
             ],
           ),
@@ -572,113 +648,111 @@ class const _HarmonyChordsGrid({
   }
 }
 
-/// A palette as a mosaic: the lead colour large, its partners beside it and
-/// the rest of the swatches in a strip underneath.
-class const _PaletteCard({
-  required final String title,
+/// Where a harmony's hues sit on the colour wheel: a dot for each, the
+/// picked hue ringed.
+class const _HueRing({
+  required final ColorSpaceMode space,
+  required final List<double> hues,
   required final List<Color> colors,
-  required final String semanticLabel,
-  required final VoidCallback onTap,
-}) extends StatefulWidget {
-  @override
-  State<_PaletteCard> createState() => _PaletteCardState();
-}
-
-class _PaletteCardState extends State<_PaletteCard> {
-  bool _hovered = false;
-  bool _pressed = false;
-
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final colors = widget.colors;
-    final borderAlpha = _hovered ? 0.16 : 0.07;
-
-    return Semantics(
-      button: true,
-      label: widget.semanticLabel,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (_) => setState(() => _pressed = true),
-          onTapCancel: () => setState(() => _pressed = false),
-          onTapUp: (_) => setState(() => _pressed = false),
-          onTap: widget.onTap,
-          child: AnimatedScale(
-            scale: _pressed ? 0.975 : 1.0,
-            duration: const Duration(milliseconds: 140),
-            curve: Curves.easeOutCubic,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 140),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: scheme.onSurface.withValues(alpha: borderAlpha),
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    widget.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: studioDisplayStyle(context, fontSize: 21, height: 1),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 24),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: ColoredBox(color: colors[0]),
-                                  ),
-                                  for (final swatch in colors.skip(1).take(2))
-                                    Expanded(child: ColoredBox(color: swatch)),
-                                ],
-                              ),
-                            ),
-                            if (colors.length > 3)
-                              Expanded(
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    for (final swatch in colors.skip(3))
-                                      Expanded(
-                                        child: ColoredBox(color: swatch),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return ExcludeSemantics(
+      child: SizedBox.square(
+        dimension: 40,
+        child: CustomPaint(
+          painter: _HueRingPainter(
+            space: space,
+            hues: hues,
+            colors: colors,
+            ink: scheme.onSurface,
+            paper: scheme.surface,
           ),
         ),
       ),
     );
   }
+}
+
+class _HueRingPainter({
+  required final ColorSpaceMode space,
+  required final List<double> hues,
+  required final List<Color> colors,
+  required final Color ink,
+  required final Color paper,
+}) extends CustomPainter {
+  static const int _segments = 48;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centre = size.center(Offset.zero);
+    final radius = size.shortestSide / 2 - 6;
+    Offset at(double hue) {
+      final angle = hue * math.pi / 180;
+      return centre + Offset(math.sin(angle), -math.cos(angle)) * radius;
+    }
+
+    final rim = Rect.fromCircle(center: centre, radius: radius);
+    const sweep = 2 * math.pi / _segments;
+    for (var i = 0; i < _segments; i++) {
+      final hue = i * 360 / _segments;
+      canvas.drawArc(
+        rim,
+        -math.pi / 2 + i * sweep - sweep / 2,
+        sweep + 0.02,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.5
+          ..color = Color.lerp(
+            paper,
+            StudioColor.fromSpace(
+              space,
+              hue: hue,
+              saturationPct: 80,
+              lightnessPct: 66,
+            ).color,
+            0.7,
+          )!,
+      );
+    }
+
+    final chord = Path()..addPolygon([for (final hue in hues) at(hue)], true);
+    canvas.drawPath(
+      chord,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = ink.withValues(alpha: 0.35),
+    );
+
+    for (final (i, hue) in hues.indexed.toList().reversed) {
+      final picked = i == 0;
+      final dot = at(hue);
+      canvas
+        ..drawCircle(dot, picked ? 6.5 : 5, Paint()..color = paper)
+        ..drawCircle(dot, picked ? 4.8 : 3.8, Paint()..color = colors[i]);
+      if (picked) {
+        canvas.drawCircle(
+          dot,
+          6.5,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2
+            ..color = ink,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HueRingPainter oldDelegate) =>
+      oldDelegate.space != space ||
+      oldDelegate.ink != ink ||
+      oldDelegate.paper != paper ||
+      !listEquals(oldDelegate.hues, hues) ||
+      !listEquals(oldDelegate.colors, colors);
 }
 
 class const _SectionHeader({

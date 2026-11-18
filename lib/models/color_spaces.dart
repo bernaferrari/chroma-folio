@@ -909,18 +909,9 @@ Color sampleAcrossSpace(
 // The first swatch leads each palette and is selected when it is applied.
 // [background] is the swatch a preview of the palette is painted on.
 const studioStarterPalettes =
-    <
-      ({
-        String name,
-        String mood,
-        String shelf,
-        int background,
-        List<Color> colors,
-      })
-    >[
+    <({String name, String shelf, int background, List<Color> colors})>[
       (
         name: 'Riso Club',
-        mood: 'Fluoro inks on newsprint',
         shelf: 'Loud',
         background: 6,
         colors: [
@@ -936,7 +927,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Cutouts',
-        mood: 'Loud paper shapes',
         shelf: 'Loud',
         background: 5,
         colors: [
@@ -950,7 +940,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Neon Arcade',
-        mood: 'Sunset neon after dark',
         shelf: 'Loud',
         background: 1,
         colors: [
@@ -964,7 +953,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Bauhaus',
-        mood: 'Three primaries and black',
         shelf: 'Loud',
         background: 4,
         colors: [
@@ -977,7 +965,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Citrus Stand',
-        mood: 'Squeezed this morning',
         shelf: 'Fresh',
         background: 4,
         colors: [
@@ -990,7 +977,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Bubblegum',
-        mood: 'Candy with an inky outline',
         shelf: 'Fresh',
         background: 3,
         colors: [
@@ -1002,7 +988,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Wildflower',
-        mood: 'A meadow in full bloom',
         shelf: 'Fresh',
         background: 7,
         colors: [
@@ -1018,7 +1003,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Deep Sea',
-        mood: 'Glowing in the dark',
         shelf: 'Fresh',
         background: 1,
         colors: [
@@ -1032,7 +1016,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Matcha',
-        mood: 'Tea, rice paper, persimmon',
         shelf: 'Calm',
         background: 2,
         colors: [
@@ -1046,7 +1029,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Harvest',
-        mood: 'Pumpkin, mustard and plum',
         shelf: 'Calm',
         background: 5,
         colors: [
@@ -1060,7 +1042,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Signal',
-        mood: 'Quiet greys, one loud note',
         shelf: 'Calm',
         background: 3,
         colors: [
@@ -1072,7 +1053,6 @@ const studioStarterPalettes =
       ),
       (
         name: 'Fjord',
-        mood: 'Cold water, red cabins',
         shelf: 'Calm',
         background: 5,
         colors: [
