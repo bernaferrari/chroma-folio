@@ -270,7 +270,7 @@ class const _ChannelReadout({
                               TextSpan(
                                 text: descriptor.unit,
                                 style: TextStyle(
-                                  fontSize: 26,
+                                  fontSize: descriptor.unit == '°' ? null : 26,
                                   color: scheme.onSurface.withValues(
                                     alpha: 0.42,
                                   ),
