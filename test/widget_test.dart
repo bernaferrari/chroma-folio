@@ -303,15 +303,47 @@ void main() {
       await tester.tap(find.text('Solid'));
       await tester.pumpAndSettle();
       final solid = find.byKey(const ValueKey<String>('gamut_solid_canvas'));
+      final viewport = find.byKey(const ValueKey('gamut_solid_viewport'));
       final edge = tester.getTopLeft(solid) + const Offset(24, 24);
+      final rotating = find.textContaining(RegExp(r'^Rotation \d{1,3}°$'));
+      final lightness = find.textContaining(RegExp(r'^Lightness \d+$'));
       final before = cubit.state.activeColor;
+      final original = await solidFrame(tester, viewport);
+      expect(rotating, findsNothing);
+      expect(lightness, findsNothing);
 
-      await tester.dragFrom(edge, const Offset(140, 0));
+      final turn = await tester.startGesture(edge);
+      await turn.moveBy(const Offset(140, 0));
+      await tester.pump();
+      expect(rotating, findsOneWidget);
+      expect(lightness, findsNothing);
+      expect(find.byIcon(Icons.swap_horiz_rounded), findsOneWidget);
+      final firstAngle = tester.widget<Text>(rotating).data;
+      final readoutWidth = tester.getSize(rotating).width;
+      await turn.moveBy(const Offset(80, 0));
+      await tester.pump();
+      expect(tester.widget<Text>(rotating).data, isNot(firstAngle));
+      expect(tester.getSize(rotating).width, readoutWidth);
+      await turn.up();
       await tester.pumpAndSettle();
+      expect(rotating, findsNothing);
+      expect(await solidFrame(tester, viewport), isNot(original));
       expect(cubit.state.activeColor, before, reason: 'turning only looks');
 
-      await tester.dragFrom(edge, const Offset(0, 80));
+      final lift = await tester.startGesture(edge);
+      await lift.moveBy(const Offset(0, 80));
+      await tester.pump();
+      expect(lightness, findsOneWidget);
+      expect(rotating, findsNothing);
+      expect(
+        find.text(
+          'Lightness ${cubit.state.activeColor.hsluv.lightness.round()}',
+        ),
+        findsOneWidget,
+      );
+      await lift.up();
       await tester.pumpAndSettle();
+      expect(lightness, findsNothing);
       final lowered = cubit.state.activeColor.hsluv;
       expect(lowered.lightness, lessThan(before.hsluv.lightness));
       expect(lowered.hue, closeTo(before.hsluv.hue, 0.01));

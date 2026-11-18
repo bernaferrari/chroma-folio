@@ -47,7 +47,7 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   _SolidFrame? _fromFrame;
   late ColorSpaceMode _space;
   late int _shuffleRevision;
-  _Grab _grab = _Grab.undecided;
+  final _grab = ValueNotifier(_Grab.undecided);
   Offset _lastFocalPoint = Offset.zero;
   Size _size = Size.zero;
   final Map<ColorSpaceMode, _Slice> _slices = {};
@@ -88,6 +88,7 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     _spin.dispose();
     _morph.dispose();
     _zoom.dispose();
+    _grab.dispose();
     super.dispose();
   }
 
@@ -225,10 +226,10 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     _lastFocalPoint = start;
     final color = _colorOnSlice(start);
     if (color == null) {
-      _grab = _Grab.undecided;
+      _grab.value = _Grab.undecided;
       return;
     }
-    _grab = _Grab.pick;
+    _grab.value = _Grab.pick;
     _cubit.beginScrub();
     _cubit.setActiveColor(color, recordHistory: false);
   }
@@ -241,17 +242,17 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
     if (_pinched) return;
 
     final delta = details.localFocalPoint - _lastFocalPoint;
-    if (_grab == _Grab.undecided) {
+    if (_grab.value == _Grab.undecided) {
       if (delta.distance < _decideAfter) return;
       if (delta.dx.abs() >= delta.dy.abs()) {
-        _grab = _Grab.turn;
+        _grab.value = _Grab.turn;
       } else {
-        _grab = _Grab.lift;
+        _grab.value = _Grab.lift;
         _cubit.beginScrub();
       }
     }
     _lastFocalPoint = details.localFocalPoint;
-    switch (_grab) {
+    switch (_grab.value) {
       case _Grab.undecided:
         break;
       case _Grab.turn:
@@ -272,7 +273,7 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
-    if (_grab == _Grab.turn &&
+    if (_grab.value == _Grab.turn &&
         details.pointerCount == 0 &&
         !MediaQuery.disableAnimationsOf(context)) {
       _spin.animateWith(
@@ -283,8 +284,10 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
         ),
       );
     }
-    if (_grab == _Grab.lift || _grab == _Grab.pick) _cubit.endScrub();
-    _grab = _Grab.undecided;
+    if (_grab.value == _Grab.lift || _grab.value == _Grab.pick) {
+      _cubit.endScrub();
+    }
+    _grab.value = _Grab.undecided;
   }
 
   void _handleTapUp(TapUpDetails details) {
@@ -396,7 +399,33 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
                   Expanded(
                     child: RepaintBoundary(
                       key: const ValueKey('gamut_solid_viewport'),
-                      child: solid,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          solid,
+                          Positioned(
+                            left: 6,
+                            bottom: 6,
+                            right: 6,
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: ValueListenableBuilder<_Grab>(
+                                valueListenable: _grab,
+                                builder: (context, grab, _) =>
+                                    _SolidDragIndicator(
+                                      channel: channels[2].name,
+                                      level: lightness.round(),
+                                      grab: grab,
+                                      yaw: _spin,
+                                      resetYaw: _Camera.yawFacing(
+                                        channels[0].value,
+                                      ),
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -452,6 +481,79 @@ class _GamutSolidScreenState extends State<GamutSolidScreen>
           ],
         );
       },
+    );
+  }
+}
+
+/// Labels the active drag without taking input away from the canvas.
+class const _SolidDragIndicator({
+  required final String channel,
+  required final int level,
+  required final _Grab grab,
+  required final ValueListenable<double> yaw,
+  required final double resetYaw,
+}) extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final icon = switch (grab) {
+      _Grab.turn => Icons.swap_horiz_rounded,
+      _Grab.lift => Icons.swap_vert_rounded,
+      _ => null,
+    };
+    final style = studioMonoStyle(
+      context,
+      fontSize: 11,
+      color: scheme.onSurface,
+    );
+    Widget readout(String label) =>
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style);
+
+    return IgnorePointer(
+      child: ExcludeSemantics(
+        child: AnimatedSwitcher(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 110),
+          child: icon == null
+              ? const SizedBox.shrink()
+              : DecoratedBox(
+                  key: ValueKey(grab),
+                  decoration: BoxDecoration(
+                    color: scheme.surface.withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: scheme.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 16, color: scheme.primary),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: grab == _Grab.turn
+                              ? ValueListenableBuilder<double>(
+                                  valueListenable: yaw,
+                                  builder: (context, angle, _) {
+                                    final degrees =
+                                        ((angle - resetYaw) * 180 / math.pi)
+                                            .round() %
+                                        360;
+                                    return readout('Rotation $degrees°');
+                                  },
+                                )
+                              : readout('$channel $level'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }
