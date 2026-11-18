@@ -103,66 +103,6 @@ class const StudioSegmentedControl<T extends Object>({
   }
 }
 
-/// Hairline neutral toggle pill for single switches like WCAG markers.
-class const StudioTogglePill({
-  super.key,
-  required final String label,
-  required final bool selected,
-  required final VoidCallback onTap,
-  final IconData? icon,
-}) extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = selected ? scheme.onSurface : scheme.surfaceContainer;
-    final fg = selected ? scheme.surface : scheme.onSurfaceVariant;
-    final border = selected
-        ? Colors.transparent
-        : scheme.outlineVariant.withValues(alpha: isDark ? 0.24 : 0.38);
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 14, color: fg),
-                const SizedBox(width: 5),
-              ],
-              Text(
-                label,
-                maxLines: 1,
-                softWrap: false,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
-                  height: 1.15,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Round icon button that works on paper or, with [ink], on a live colour.
 class const StudioIconButton({
   super.key,

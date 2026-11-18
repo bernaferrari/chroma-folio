@@ -17,18 +17,6 @@ double wcagContrastRatio(Color a, Color b) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-String wcagLevelLabel(double ratio, {bool largeText = false}) {
-  if (largeText) {
-    if (ratio >= 4.5) return 'AAA';
-    if (ratio >= 3.0) return 'AA';
-    return 'FAIL';
-  }
-  if (ratio >= 7.0) return 'AAA';
-  if (ratio >= 4.5) return 'AA';
-  if (ratio >= 3.0) return 'AA+';
-  return 'FAIL';
-}
-
 /// Returns crisp foreground text color (near-black or near-white) with optimal contrast.
 Color contrastingTextColor(Color bg) {
   const dark = Color(0xFF0B0F19);
@@ -36,43 +24,6 @@ Color contrastingTextColor(Color bg) {
   return wcagContrastRatio(bg, dark) >= wcagContrastRatio(bg, light)
       ? dark
       : light;
-}
-
-/// Computes APCA-W3 perceptual contrast (Lc in roughly -108 .. +106).
-double apcaContrast(Color text, Color background) {
-  double linearize(double c) => math.pow(c.clamp(0.0, 1.0), 2.4).toDouble();
-  double yFor(Color c) {
-    final y =
-        0.2126729 * linearize(c.r) +
-        0.7151522 * linearize(c.g) +
-        0.0721750 * linearize(c.b);
-    const blkThrs = 0.022;
-    const blkClmp = 1.414;
-    return y > blkThrs ? y : y + math.pow(blkThrs - y, blkClmp);
-  }
-
-  final yTxt = yFor(text);
-  final yBg = yFor(background);
-  if ((yBg - yTxt).abs() < 0.0005) return 0.0;
-
-  const normBg = 0.56;
-  const normTxt = 0.57;
-  const revBg = 0.65;
-  const revTxt = 0.62;
-  const scaleBoW = 1.14;
-  const scaleWoB = 1.14;
-  const loClip = 0.1;
-  const loConOffset = 0.027;
-
-  if (yBg > yTxt) {
-    final sapc = (math.pow(yBg, normBg) - math.pow(yTxt, normTxt)) * scaleBoW;
-    if (sapc < loClip) return 0.0;
-    return (sapc - loConOffset) * 100.0;
-  } else {
-    final sapc = (math.pow(yBg, revBg) - math.pow(yTxt, revTxt)) * scaleWoB;
-    if (sapc > -loClip) return 0.0;
-    return (sapc + loConOffset) * 100.0;
-  }
 }
 
 /// Solves for the nearest [HSLuvColor] lightness that achieves [targetRatio]
@@ -150,115 +101,6 @@ HSLuvColor? solveHsluvForContrast(
   final diffDark = (source.lightness - darker.lightness).abs();
   final diffLight = (lighter.lightness - source.lightness).abs();
   return diffDark <= diffLight ? darker : lighter;
-}
-
-/// Color Vision Deficiency simulation types.
-enum CvdType(final String label, final String description) {
-  normal('Normal Vision', '100% full trichromatic spectrum'),
-  protanopia('Protanopia', 'Red-blind (missing L-cones · ~1% males)'),
-  deuteranopia('Deuteranopia', 'Green-blind (missing M-cones · ~1% males)'),
-  tritanopia('Tritanopia', 'Blue-blind (missing S-cones · <0.1%)'),
-  protanomaly('Protanomaly', 'Red-weak (anomalous L-cones · ~1% males)'),
-  deuteranomaly('Deuteranomaly', 'Green-weak (anomalous M-cones · ~6% males)'),
-  tritanomaly('Tritanomaly', 'Blue-weak (anomalous S-cones · ~0.01%)'),
-  achromatopsia('Achromatopsia', 'Total monochromacy (~0.003%)');
-
-  Color simulate(Color color) {
-    final r = (color.r * 255.0).round().clamp(0, 255);
-    final g = (color.g * 255.0).round().clamp(0, 255);
-    final b = (color.b * 255.0).round().clamp(0, 255);
-
-    List<int> applyMatrix(List<double> m) {
-      return [
-        (r * m[0] + g * m[1] + b * m[2]).round().clamp(0, 255),
-        (r * m[3] + g * m[4] + b * m[5]).round().clamp(0, 255),
-        (r * m[6] + g * m[7] + b * m[8]).round().clamp(0, 255),
-      ];
-    }
-
-    final rgb = switch (this) {
-      CvdType.normal => [r, g, b],
-      CvdType.protanopia => applyMatrix(const [
-        0.567,
-        0.433,
-        0.0,
-        0.558,
-        0.442,
-        0.0,
-        0.0,
-        0.242,
-        0.758,
-      ]),
-      CvdType.deuteranopia => applyMatrix(const [
-        0.625,
-        0.375,
-        0.0,
-        0.7,
-        0.3,
-        0.0,
-        0.0,
-        0.3,
-        0.7,
-      ]),
-      CvdType.tritanopia => applyMatrix(const [
-        0.95,
-        0.05,
-        0.0,
-        0.0,
-        0.433,
-        0.567,
-        0.0,
-        0.475,
-        0.525,
-      ]),
-      CvdType.protanomaly => applyMatrix(const [
-        0.817,
-        0.183,
-        0.0,
-        0.333,
-        0.667,
-        0.0,
-        0.0,
-        0.125,
-        0.875,
-      ]),
-      CvdType.deuteranomaly => applyMatrix(const [
-        0.8,
-        0.2,
-        0.0,
-        0.258,
-        0.742,
-        0.0,
-        0.0,
-        0.142,
-        0.858,
-      ]),
-      CvdType.tritanomaly => applyMatrix(const [
-        0.967,
-        0.033,
-        0.0,
-        0.0,
-        0.733,
-        0.267,
-        0.0,
-        0.183,
-        0.817,
-      ]),
-      CvdType.achromatopsia => applyMatrix(const [
-        0.299,
-        0.587,
-        0.114,
-        0.299,
-        0.587,
-        0.114,
-        0.299,
-        0.587,
-        0.114,
-      ]),
-    };
-
-    return Color.fromARGB(255, rgb[0], rgb[1], rgb[2]);
-  }
 }
 
 /// Cached lookup against `assets/colornames.json`.
